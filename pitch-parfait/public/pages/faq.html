@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pitch Parfait — FAQ</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="../css/styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="pp-navbar"></div>
+
+    <main class="container py-4 py-lg-5">
+      <div class="row justify-content-center">
+        <div class="col-12 col-lg-9 col-xl-8">
+          <div class="pp-surface p-4 p-md-5 mb-4">
+            <div class="badge rounded-pill pp-badge">FAQ</div>
+            <h2 class="pp-brand" style="margin-top:10px;margin-bottom:6px;">Quick answers, sweet and simple</h2>
+            <div class="pp-muted">Tap a question to expand.</div>
+          </div>
+
+          <div class="accordion pp-surface p-2" id="ppFaq">
+            <div class="accordion-item border-0">
+              <h2 class="accordion-header" id="h1">
+                <button class="accordion-button fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#c1" aria-expanded="true" aria-controls="c1">
+                  Orders — How do I place an order?
+                </button>
+              </h2>
+              <div id="c1" class="accordion-collapse collapse show" aria-labelledby="h1" data-bs-parent="#ppFaq">
+                <div class="accordion-body pp-muted">
+                  Browse the menu on Home, add items to your cart, then go to Checkout. Orders save to Firestore (when configured).
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0">
+              <h2 class="accordion-header" id="h2">
+                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#c2" aria-expanded="false" aria-controls="c2">
+                  Sugar content — Is it very sweet?
+                </button>
+              </h2>
+              <div id="c2" class="accordion-collapse collapse" aria-labelledby="h2" data-bs-parent="#ppFaq">
+                <div class="accordion-body pp-muted">
+                  We aim for balanced sweetness. Check the Nutrition page for sample nutrition facts (demo values).
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0">
+              <h2 class="accordion-header" id="h3">
+                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#c3" aria-expanded="false" aria-controls="c3">
+                  Delivery — Do you deliver?
+                </button>
+              </h2>
+              <div id="c3" class="accordion-collapse collapse" aria-labelledby="h3" data-bs-parent="#ppFaq">
+                <div class="accordion-body pp-muted">
+                  Yes. For demo UI, delivery is shown as ₱0.00. In production, delivery fees vary by area.
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item border-0">
+              <h2 class="accordion-header" id="h4">
+                <button class="accordion-button collapsed fw-semibold" type="button" data-bs-toggle="collapse" data-bs-target="#c4" aria-expanded="false" aria-controls="c4">
+                  Products — What’s your best seller?
+                </button>
+              </h2>
+              <div id="c4" class="accordion-collapse collapse" aria-labelledby="h4" data-bs-parent="#ppFaq">
+                <div class="accordion-body pp-muted">
+                  Strawberry Cloud Parfait is a crowd favorite: fruit, cream, and crunch in every layer.
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div id="pp-footer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="../js/app.js"></script>
+  </body>
+</html>
+

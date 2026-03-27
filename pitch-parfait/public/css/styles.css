@@ -1,0 +1,207 @@
+:root{
+  --pp-primary:#FFC0CB;
+  --pp-secondary:#FFF5E1;
+  --pp-accent:#8B4513;
+  --pp-ink:#2a1c24;
+  --pp-muted:#6e5f67;
+  --pp-shadow:0 10px 28px rgba(18, 8, 16, 0.10);
+  --pp-radius:18px;
+}
+
+html, body { height: 100%; }
+
+body{
+  color: var(--pp-ink);
+  background:
+    radial-gradient(1200px 600px at 10% 10%, rgba(255, 192, 203, 0.35), transparent 60%),
+    radial-gradient(1000px 560px at 90% 0%, rgba(255, 245, 225, 0.8), transparent 55%),
+    linear-gradient(180deg, #fff, #fff8fb);
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+}
+
+.navbar{
+  background: var(--pp-primary) !important;
+}
+
+footer{
+  background: #f07da7 !important;
+}
+
+footer .pp-muted,
+footer .fw-semibold,
+footer a,
+footer .pp-brand{
+  color: #fff !important;
+}
+
+.pp-brand{
+  font-family: "Fraunces", serif;
+  font-weight: 700;
+  letter-spacing: .2px;
+}
+
+.pp-muted{ color: var(--pp-muted) !important; }
+
+.pp-surface{
+  background:#fff;
+  border-radius: var(--pp-radius);
+  box-shadow: var(--pp-shadow);
+}
+
+main.container{
+  background: rgba(246, 246, 246, 0.9);
+  border-radius: 8px;
+}
+
+.pp-card{
+  border:0;
+  border-radius: var(--pp-radius);
+  box-shadow: var(--pp-shadow);
+}
+
+.pp-img-top{
+  border-top-left-radius: var(--pp-radius);
+  border-top-right-radius: var(--pp-radius);
+}
+
+.pp-badge{
+  background: rgba(255, 192, 203, 0.35);
+  color: #8a2e4b;
+  border: 1px solid rgba(255, 192, 203, 0.55);
+}
+
+.pp-btn-primary{
+  border:0;
+  border-radius: 14px;
+  height: 48px;
+  padding: 0 18px;
+  color: #2a1c24;
+  background: linear-gradient(180deg, #ffd2da, var(--pp-primary));
+  box-shadow: 0 12px 22px rgba(255, 192, 203, 0.35);
+  transition: transform .12s ease, filter .12s ease;
+}
+.pp-btn-primary:hover{ filter: brightness(.98); transform: translateY(-1px); }
+.pp-btn-primary:disabled{ opacity: .6; transform:none; }
+
+.pp-btn-secondary{
+  border-radius: 14px;
+  height: 48px;
+  padding: 0 18px;
+  background: rgba(255,255,255,.95);
+  border: 1px solid rgba(139, 69, 19, 0.18);
+  color: var(--pp-ink);
+  transition: transform .12s ease, filter .12s ease;
+}
+.pp-btn-secondary:hover{ filter: brightness(.99); transform: translateY(-1px); }
+
+.pp-option{
+  border-radius: 16px;
+  border: 1px solid rgba(0,0,0,0.08);
+  background: #fff;
+  box-shadow: var(--pp-shadow);
+  padding: 14px;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease, box-shadow .12s ease;
+}
+.pp-option:hover{ transform: translateY(-1px); }
+.pp-option[aria-pressed="true"]{
+  border-color: rgba(255, 192, 203, 0.95);
+  box-shadow: 0 14px 30px rgba(255, 192, 203, 0.25);
+}
+
+.pp-hero{
+  min-height: 440px;
+  border-radius: calc(var(--pp-radius) + 6px);
+  overflow: hidden;
+  box-shadow: var(--pp-shadow);
+  background:
+    linear-gradient(100deg, rgba(255, 245, 225, 0.75), rgba(255, 192, 203, 0.35)),
+    url("https://placehold.co/1600x900/png?text=Pitch+Parfait") center/cover no-repeat;
+}
+.pp-hero-overlay{
+  background: linear-gradient(90deg, rgba(255,255,255,0.92), rgba(255,255,255,0.55) 55%, rgba(255,255,255,0.15));
+}
+
+.pp-toast{
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 1060;
+  min-width: min(420px, calc(100vw - 36px));
+}
+
+.pp-section-title{
+  font-family: "Fraunces", serif;
+  font-weight: 700;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+}
+
+.pp-main-hero{
+  border-radius: 8px;
+  min-height: 300px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
+    url("https://placehold.co/1600x520/png?text=Everyday+Celebrations") center/cover no-repeat;
+  box-shadow: var(--pp-shadow);
+  overflow: hidden;
+}
+.pp-main-hero__overlay{
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  color: #ffd24d;
+  text-shadow: 0 3px 8px rgba(0,0,0,.25);
+}
+.pp-main-hero__title{
+  font-family: "Fraunces", serif;
+  font-size: clamp(1.8rem, 5vw, 3.4rem);
+  font-weight: 700;
+  margin: 0;
+}
+.pp-main-hero__subtitle{
+  font-family: "Fraunces", serif;
+  font-size: clamp(1rem, 2.4vw, 1.6rem);
+  font-weight: 700;
+}
+
+.pp-category-card{
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--pp-shadow);
+}
+.pp-category-card img{
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  transition: transform .2s ease;
+}
+.pp-category-card:hover img{
+  transform: scale(1.02);
+}
+.pp-category-card__label{
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,.25);
+  font-family: "Fraunces", serif;
+  font-size: clamp(1.15rem, 2.8vw, 2rem);
+  font-weight: 700;
+}
+.pp-category-card__count{
+  position: absolute;
+  left: 16px;
+  bottom: 12px;
+  color: #fff;
+  font-size: .9rem;
+  text-shadow: 0 2px 8px rgba(0,0,0,.25);
+}
+
+@media (max-width: 991px){
+  .pp-category-card img{ height: 190px; }
+}
+

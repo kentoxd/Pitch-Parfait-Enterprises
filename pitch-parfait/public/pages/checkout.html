@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Pitch Parfait — Checkout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="../css/styles.css" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="pp-navbar"></div>
+
+    <main class="container py-4 py-lg-5">
+      <div class="d-flex align-items-end justify-content-between gap-3 mb-3">
+        <div>
+          <h2 class="pp-brand" style="margin-bottom:6px;">Checkout</h2>
+          <div class="pp-muted">Select delivery + payment. Place order when ready.</div>
+        </div>
+        <a class="btn btn-link pp-muted" href="./cart.html">Back to cart</a>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-12 col-lg-7">
+          <div class="pp-surface p-4 p-md-5">
+            <div class="fw-semibold mb-3">Delivery method</div>
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <button class="pp-option w-100 text-start" type="button" id="pp-delivery-pickup" aria-pressed="false">
+                  <div class="fw-semibold">Pick Up</div>
+                  <div class="pp-muted small">Collect at our store.</div>
+                </button>
+              </div>
+              <div class="col-12 col-md-6">
+                <button class="pp-option w-100 text-start" type="button" id="pp-delivery-delivery" aria-pressed="false">
+                  <div class="fw-semibold">Delivery</div>
+                  <div class="pp-muted small">We bring it to you.</div>
+                </button>
+              </div>
+            </div>
+
+            <div class="fw-semibold mt-4 mb-2">Payment method</div>
+            <div class="pp-muted small mb-2">Options change based on delivery method.</div>
+            <div class="row g-2" id="pp-payment-options"></div>
+
+            <div class="mt-4">
+              <button class="btn pp-btn-primary w-100" type="button" id="pp-place-order" disabled>
+                Place Order
+              </button>
+              <div class="pp-muted small mt-2" id="pp-place-hint">Select delivery method and payment method to continue.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-12 col-lg-5">
+          <div class="pp-surface p-4">
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="fw-semibold">Cart Summary</div>
+              <a class="btn btn-link p-0 small pp-muted" href="./cart.html">Edit</a>
+            </div>
+            <div class="mt-3 d-flex flex-column gap-2" id="pp-summary-lines"></div>
+            <hr />
+            <div class="d-flex align-items-center justify-content-between">
+              <div class="pp-muted">Total</div>
+              <div class="fw-semibold" id="pp-summary-total">₱0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <div id="pp-footer"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="module" src="../js/app.js"></script>
+    <script type="module" src="../js/checkout.js"></script>
+  </body>
+</html>
+
