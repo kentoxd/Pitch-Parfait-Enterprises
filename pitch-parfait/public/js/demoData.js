@@ -4,7 +4,7 @@ export const demoProducts = [
     name: "Strawberry Cloud Parfait",
     category: "Parfait",
     price: 159,
-    image: "https://placehold.co/900x700/png?text=Strawberry+Cloud",
+    image: "https://cdn.discordapp.com/attachments/1488093221014994986/1488124196893626519/Berry_Parfait.png?ex=69cba328&is=69ca51a8&hm=f8b7c2a9ec91749c3972a940942c61da387ba8734bbe63a29868857da829fc6b&",
     description: "Layered strawberries, vanilla cream, and crunchy crumble."
   },
   {
@@ -12,7 +12,7 @@ export const demoProducts = [
     name: "Mango Sunset Parfait",
     category: "Parfait",
     price: 149,
-    image: "https://placehold.co/900x700/png?text=Mango+Sunset",
+    image: "https://cdn.discordapp.com/attachments/1488093221014994986/1488124248835883028/Mango_Strawberry_Parfait.png?ex=69cba334&is=69ca51b4&hm=a779de828810a027ed5a9730cfa86e149efeb0f0ac98605642033be8f1727c16&",
     description: "Bright mango, coconut cream, and toasted flakes."
   },
   {
