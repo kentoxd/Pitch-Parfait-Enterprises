@@ -5,7 +5,7 @@ import { escapeHtml, showToast } from "./ui.js";
 const categories = ["Parfait", "Swirls", "Shakes", "Cakes"];
 let allProducts = [];
 const categoryImages = {
-  Parfait: "https://placehold.co/900x700/png?text=Parfait",
+  Parfait: "https://cdn.discordapp.com/attachments/1488093221014994986/1488093274630787092/parfaitbanner.png?ex=69cb865c&is=69ca34dc&hm=3862f6b74006317c66d304eec227b44e7d9c49afe4ce1c2af6cad28588f329fd&",
   Swirls: "https://placehold.co/900x700/png?text=Swirls",
   Shakes: "https://placehold.co/900x700/png?text=Shakes",
   Cakes: "https://placehold.co/900x700/png?text=Cakes"

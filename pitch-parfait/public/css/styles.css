@@ -1,3 +1,9 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
 :root{
   --pp-primary:#FFC0CB;
   --pp-secondary:#FFF5E1;
@@ -138,10 +144,10 @@ main.container{
 
 .pp-main-hero{
   border-radius: 8px;
-  min-height: 300px;
+  min-height: 100vh;
   background:
     linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    url("https://placehold.co/1600x520/png?text=Everyday+Celebrations") center/cover no-repeat;
+    url("https://cdn.discordapp.com/attachments/1488093221014994986/1488097631807733810/poster.jpg?ex=69cb8a6a&is=69ca38ea&hm=08b4db5c29230227984fdc2a7c308835466caf9a2d8d80231c4d3f8d6f089d99&") center/cover no-repeat;
   box-shadow: var(--pp-shadow);
   overflow: hidden;
 }
