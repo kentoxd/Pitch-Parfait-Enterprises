@@ -23,5 +23,7 @@ jobs:
           server: ${{ secrets.HOSTINGER_FTP_HOST }}
           username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          protocol: ftps
+          port: 21
           local-dir: ./pitch-parfait/public/
-          server-dir: ./public_html/
+          server-dir: /public_html/
