@@ -21,6 +21,11 @@ function renderLines(order) {
           <div>
             <div class="small fw-semibold">${escapeHtml(it.name || "")}</div>
             <div class="pp-muted small">Qty: ${qty}</div>
+            ${
+              Array.isArray(it.toppings) && it.toppings.length
+                ? `<div class="pp-muted small">Extra toppings: ${escapeHtml(it.toppings.join(", "))}</div>`
+                : ""
+            }
           </div>
           <div class="small fw-semibold">${money(lineTotal)}</div>
         </div>
@@ -49,12 +54,13 @@ async function boot() {
 
   document.getElementById("pp-amount").textContent = money(order.totalAmount || 0);
   document.getElementById("pp-pay-total").textContent = money(order.totalAmount || 0);
-  document.getElementById("pp-method-delivery").textContent = order.deliveryMethod || "-";
+  const orderMethod = order.orderMethod || order.deliveryMethod || "-";
+  document.getElementById("pp-method-order").textContent = orderMethod;
   document.getElementById("pp-method-payment").textContent =
     order.paymentMethod === "online" ? "online (dummy)" : (order.paymentMethod || "cod");
   renderLines(order);
 
-  const isDelivery = order.deliveryMethod === "delivery";
+  const isDelivery = String(orderMethod).toLowerCase() === "delivery";
   const isOnline = order.paymentMethod === "online";
   const addressWrap = document.getElementById("pp-pay-address-wrap");
   const pickupWrap = document.getElementById("pp-pay-pickup-note-wrap");
@@ -79,7 +85,7 @@ async function boot() {
   }
 
   const existingCustomer = order.customer || {};
-  document.getElementById("pp-pay-name").value = existingCustomer.name || "";
+  document.getElementById("pp-pay-name").value = order.payerName || existingCustomer.payerName || existingCustomer.name || "";
   document.getElementById("pp-pay-phone").value = existingCustomer.phone || "";
   document.getElementById("pp-pay-address").value = existingCustomer.address || "";
   document.getElementById("pp-pay-pickup-note").value = existingCustomer.pickupNote || "";
@@ -98,14 +104,17 @@ async function boot() {
 
     try {
       await updateOrder(orderId, {
-        status: isOnline ? "paid" : "placed",
+        status: "processing",
         payerName: name,
         paymentReference: isOnline ? ref : "",
+        orderMethod: String(orderMethod).toLowerCase(),
+        deliveryMethod: String(orderMethod).toLowerCase(),
         customer: {
           name,
           phone,
           address: isDelivery ? address : "",
-          pickupNote: isDelivery ? "" : pickupNote
+          pickupNote: isDelivery ? "" : pickupNote,
+          payerName: name,
         }
       });
       await clearCart();

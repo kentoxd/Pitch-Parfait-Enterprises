@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" role="img" aria-label="Pitch Parfait">
+  <defs>
+    <linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ffd6e0"/>
+      <stop offset="100%" style="stop-color:#f07da7"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="56" fill="url(#g)" stroke="#8B4513" stroke-width="2" opacity="0.95"/>
+  <text x="60" y="72" text-anchor="middle" font-family="Georgia,serif" font-size="28" font-weight="700" fill="#4a2c2a">PP</text>
+</svg>

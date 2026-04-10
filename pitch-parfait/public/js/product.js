@@ -24,6 +24,7 @@ function getProductId() {
 function setupOptions(product) {
   let selectedSize = "small";
   const selectedToppings = new Set();
+  let currentTotal = Number(product.price) || 0;
 
   const sizeHost = document.getElementById("pp-size-options");
   sizeHost.innerHTML = sizeMap
@@ -40,6 +41,7 @@ function setupOptions(product) {
     const sizeAdd = sizeMap.find((s) => s.key === selectedSize)?.add || 0;
     const topAdd = [...selectedToppings].reduce((sum, k) => sum + (toppings.find((t) => t.key === k)?.add || 0), 0);
     const total = base + sizeAdd + topAdd;
+    currentTotal = total;
     document.getElementById("pp-total-price").textContent = money(total);
     return total;
   };
@@ -63,6 +65,11 @@ function setupOptions(product) {
   });
 
   calcTotal();
+  return () => ({
+    unitPrice: Number(currentTotal) || 0,
+    selectedSize,
+    selectedToppings: [...selectedToppings],
+  });
 }
 
 async function boot() {
@@ -82,7 +89,7 @@ async function boot() {
   document.getElementById("pp-product-base-price").textContent = money(product.price);
   document.getElementById("pp-product-desc").textContent = product.description || "";
 
-  setupOptions(product);
+  const getSelection = setupOptions(product);
 
   document.getElementById("pp-add-cart").addEventListener("click", async () => {
     if (!isFirebaseConfigured()) {
@@ -91,9 +98,14 @@ async function boot() {
     }
     if (!(await requireAuthOrRedirect(window.location.pathname + window.location.search))) return;
     try {
+      const selection = getSelection();
       const lines = await getCartLines();
       const line = lines.find((l) => l.productId === product.id);
-      await setCartQty(product.id, (Number(line?.quantity) || 0) + 1);
+      await setCartQty(product.id, (Number(line?.quantity) || 0) + 1, {
+        unitPrice: selection.unitPrice,
+        size: selection.selectedSize,
+        toppings: selection.selectedToppings,
+      });
       showToast("Added to cart!", "success");
     } catch (error) {
       console.error("Add to cart failed", error);

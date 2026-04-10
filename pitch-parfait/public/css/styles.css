@@ -17,11 +17,22 @@
 html, body { height: 100%; }
 
 body{
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  font-family: "Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, sans-serif;
   color: var(--pp-ink);
   background:
     radial-gradient(1200px 600px at 10% 10%, rgba(255, 192, 203, 0.35), transparent 60%),
-    radial-gradient(1000px 560px at 90% 0%, rgba(255, 245, 225, 0.8), transparent 55%),
-    font-family: "Plus Jakarta Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+    radial-gradient(1000px 560px at 90% 0%, rgba(255, 245, 225, 0.8), transparent 55%);
+}
+
+main{
+  flex: 1 0 auto;
+}
+
+footer{
+  margin-top: auto;
 }
 
 .navbar{
@@ -72,6 +83,62 @@ main.container{
   background: rgba(255, 192, 203, 0.35);
   color: #8a2e4b;
   border: 1px solid rgba(255, 192, 203, 0.55);
+}
+
+.pp-admin-image-preview{
+  width: 100%;
+  max-height: 220px;
+  object-fit: contain;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  background: #fff;
+  padding: 8px;
+}
+
+.pp-status-pill{
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.pp-status--pending{
+  background: #fff3cd;
+  color: #664d03;
+  border-color: #ffe69c;
+}
+
+.pp-status--processing{
+  background: #cfe2ff;
+  color: #084298;
+  border-color: #9ec5fe;
+}
+
+.pp-status--shipped{
+  background: #e2d9f3;
+  color: #432874;
+  border-color: #c5b3ea;
+}
+
+.pp-status--delivered{
+  background: #d1e7dd;
+  color: #0f5132;
+  border-color: #a3cfbb;
+}
+
+.pp-status--cancelled{
+  background: #f8d7da;
+  color: #842029;
+  border-color: #f1aeb5;
+}
+
+.pp-status--finished{
+  background: #d3d7dc;
+  color: #27313b;
+  border-color: #b9c0c7;
 }
 
 .pp-btn-primary{

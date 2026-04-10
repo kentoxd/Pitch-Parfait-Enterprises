@@ -59,14 +59,24 @@ export async function login(email, password) {
   return firebaseAuth.signInWithEmailAndPassword(auth, email, password);
 }
 
-export async function signup(email, password) {
+export async function signup(email, password, fullName = "") {
   if (!auth) throw new Error("Firebase is not configured.");
   const cred = await firebaseAuth.createUserWithEmailAndPassword(auth, email, password);
+  const cleanedName = String(fullName || "").trim();
+  if (cleanedName) {
+    try {
+      await firebaseAuth.updateProfile(cred.user, { displayName: cleanedName });
+    } catch {
+      // Ignore profile sync failures and still persist on Firestore.
+    }
+  }
   if (db) {
     await firestore.setDoc(
       firestore.doc(db, "users", cred.user.uid),
       {
         email: cred.user.email || "",
+        name: cleanedName,
+        displayName: cleanedName,
         role: "customer",
         createdAt: firestore.serverTimestamp(),
       },
@@ -93,5 +103,23 @@ export async function isAdminUser() {
   if (!u) return false;
   const role = await getUserRole(u.uid);
   return role === "admin";
+}
+
+export async function getCurrentUserProfile() {
+  const u = currentUser();
+  if (!u) return null;
+  const role = await getUserRole(u.uid);
+  let profile = {};
+  if (db) {
+    const snap = await firestore.getDoc(firestore.doc(db, "users", u.uid));
+    if (snap.exists()) profile = snap.data() || {};
+  }
+  return {
+    uid: u.uid,
+    email: u.email || profile.email || "",
+    displayName: u.displayName || profile.displayName || "",
+    role,
+    ...profile,
+  };
 }
 

@@ -25,7 +25,7 @@
       <div class="row g-4">
         <div class="col-12 col-lg-7">
           <div class="pp-surface p-4 p-md-5">
-            <div class="fw-semibold mb-3">Delivery method</div>
+            <div class="fw-semibold mb-3">Order Method</div>
             <div class="row g-2">
               <div class="col-12 col-md-6">
                 <button class="pp-option w-100 text-start" type="button" id="pp-delivery-pickup" aria-pressed="false">
@@ -41,9 +41,11 @@
               </div>
             </div>
 
-            <div class="fw-semibold mt-4 mb-2">Payment method</div>
-            <div class="pp-muted small mb-2">Options change based on delivery method.</div>
-            <div class="row g-2" id="pp-payment-options"></div>
+            <div id="pp-payment-method-section" class="d-none">
+              <div class="fw-semibold mt-4 mb-2">Payment method</div>
+              <div class="pp-muted small mb-2">Options change based on order method.</div>
+              <div class="row g-2" id="pp-payment-options"></div>
+            </div>
 
             <div class="fw-semibold mt-4 mb-2">Customer details</div>
             <div class="pp-muted small mb-2">Please fill this before placing order (dummy form).</div>
@@ -55,6 +57,10 @@
               <div class="col-12 col-md-6">
                 <label class="form-label small fw-semibold mb-1" for="pp-customer-phone">Phone</label>
                 <input class="form-control" id="pp-customer-phone" placeholder="+63 912 345 6789" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold mb-1" for="pp-payer-name">Payer Name</label>
+                <input class="form-control" id="pp-payer-name" placeholder="Name on payment" />
               </div>
               <div class="col-12 d-none" id="pp-delivery-address-wrap">
                 <label class="form-label small fw-semibold mb-1" for="pp-customer-address">Delivery Address</label>

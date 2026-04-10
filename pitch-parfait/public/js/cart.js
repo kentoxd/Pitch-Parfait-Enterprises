@@ -6,7 +6,10 @@ import { requireAuthOrRedirect } from "./auth.js";
 let products = [];
 
 function lineRow(p, qty) {
-  const lineTotal = (Number(p.price) || 0) * (Number(qty) || 0);
+  const unitPrice = Number(p.unitPrice ?? p.price) || 0;
+  const lineTotal = unitPrice * (Number(qty) || 0);
+  const sizeLabel = p.size ? `Size: ${escapeHtml(String(p.size))}` : "";
+  const toppings = Array.isArray(p.toppings) && p.toppings.length ? `Toppings: ${escapeHtml(p.toppings.join(", "))}` : "";
   return `
     <div class="pp-surface p-3 p-lg-4" data-line="${escapeHtml(p.id)}">
       <div class="row g-3 align-items-center">
@@ -16,6 +19,8 @@ function lineRow(p, qty) {
         <div class="col-8 col-md-5 col-lg-6">
           <div class="fw-semibold">${escapeHtml(p.name)}</div>
           <div class="pp-muted small">${escapeHtml(p.category)}</div>
+          ${sizeLabel ? `<div class="pp-muted small">${sizeLabel}</div>` : ""}
+          ${toppings ? `<div class="pp-muted small">${toppings}</div>` : ""}
           <div class="pp-muted small mt-1">${escapeHtml(p.description || "")}</div>
         </div>
         <div class="col-12 col-md-4 col-lg-4">
@@ -40,7 +45,8 @@ function computeSubtotal(cartLines) {
   return cartLines.reduce((sum, l) => {
     const p = products.find((x) => x.id === l.productId);
     if (!p) return sum;
-    return sum + (Number(p.price) || 0) * (Number(l.quantity) || 0);
+    const unitPrice = Number(l.unitPrice ?? p.price) || 0;
+    return sum + unitPrice * (Number(l.quantity) || 0);
   }, 0);
 }
 
@@ -66,7 +72,7 @@ async function render() {
       .map((l) => {
         const p = products.find((x) => x.id === l.productId);
         if (!p) return "";
-        return lineRow(p, l.quantity);
+        return lineRow({ ...p, unitPrice: l.unitPrice, size: l.size, toppings: l.toppings }, l.quantity);
       })
       .join("");
   }

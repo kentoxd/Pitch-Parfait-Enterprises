@@ -3,7 +3,7 @@ import { getProducts, getCartLines, createOrder, clearCart } from "./store.js";
 import { escapeHtml, money, setPressed, showToast } from "./ui.js";
 import { requireAuthOrRedirect } from "./auth.js";
 
-let deliveryMethod = null; // "pickup" | "delivery"
+let orderMethod = null; // "pickup" | "delivery"
 let paymentMethod = null; // "cod" | "online"
 let products = [];
 let cartLines = [];
@@ -14,6 +14,7 @@ function collectCustomerDetails() {
     phone: document.getElementById("pp-customer-phone").value.trim(),
     address: document.getElementById("pp-customer-address").value.trim(),
     pickupNote: document.getElementById("pp-pickup-note").value.trim(),
+    payerName: document.getElementById("pp-payer-name").value.trim(),
   };
 }
 
@@ -22,11 +23,11 @@ function updateCustomerFieldsVisibility() {
   const pickupWrap = document.getElementById("pp-pickup-note-wrap");
   const addressInput = document.getElementById("pp-customer-address");
 
-  if (deliveryMethod === "delivery") {
+  if (orderMethod === "delivery") {
     deliveryWrap.classList.remove("d-none");
     pickupWrap.classList.add("d-none");
     addressInput.setAttribute("required", "required");
-  } else if (deliveryMethod === "pickup") {
+  } else if (orderMethod === "pickup") {
     deliveryWrap.classList.add("d-none");
     pickupWrap.classList.remove("d-none");
     addressInput.removeAttribute("required");
@@ -39,20 +40,28 @@ function updateCustomerFieldsVisibility() {
 
 function isCustomerDetailsValid() {
   const d = collectCustomerDetails();
-  if (!d.name || !d.phone) return false;
-  if (deliveryMethod === "delivery" && !d.address) return false;
+  if (!d.name || !d.phone || !d.payerName) return false;
+  if (orderMethod === "delivery" && !d.address) return false;
   return true;
 }
 
 function allowedPayments() {
-  if (deliveryMethod === "pickup") return ["cod"];
-  if (deliveryMethod === "delivery") return ["cod", "online"];
+  if (orderMethod === "pickup") return [];
+  if (orderMethod === "delivery") return ["cod", "online"];
   return [];
 }
 
 function renderPaymentOptions() {
+  const section = document.getElementById("pp-payment-method-section");
   const host = document.getElementById("pp-payment-options");
   const allowed = allowedPayments();
+  if (orderMethod === "pickup") {
+    paymentMethod = null;
+    section.classList.add("d-none");
+    host.innerHTML = "";
+    return;
+  }
+  section.classList.remove("d-none");
   if (!allowed.includes(paymentMethod)) paymentMethod = null;
 
   const option = (key, title, subtitle) => {
@@ -98,7 +107,7 @@ function renderSummary() {
             <div class="small fw-semibold">${escapeHtml(p.name)}</div>
             <div class="pp-muted small">Qty: ${Number(l.quantity) || 0}</div>
           </div>
-          <div class="small fw-semibold">${money((Number(p.price) || 0) * (Number(l.quantity) || 0))}</div>
+          <div class="small fw-semibold">${money((Number(l.unitPrice ?? p.price) || 0) * (Number(l.quantity) || 0))}</div>
         </div>
       `;
     })
@@ -107,7 +116,7 @@ function renderSummary() {
   const total = cartLines.reduce((sum, l) => {
     const p = products.find((x) => x.id === l.productId);
     if (!p) return sum;
-    return sum + (Number(p.price) || 0) * (Number(l.quantity) || 0);
+    return sum + (Number(l.unitPrice ?? p.price) || 0) * (Number(l.quantity) || 0);
   }, 0);
   document.getElementById("pp-summary-total").textContent = money(total);
   return total;
@@ -116,11 +125,12 @@ function renderSummary() {
 function updatePlaceOrderState() {
   const btn = document.getElementById("pp-place-order");
   const hint = document.getElementById("pp-place-hint");
-  const ok = Boolean(deliveryMethod && paymentMethod && isCustomerDetailsValid());
+  const paymentOk = orderMethod === "pickup" ? true : Boolean(paymentMethod);
+  const ok = Boolean(orderMethod && paymentOk && isCustomerDetailsValid());
   btn.disabled = !ok;
   hint.textContent = ok
     ? "Ready to place your order."
-    : "Select delivery/payment and complete customer details.";
+    : "Select order method/payment and complete customer details.";
 }
 
 async function placeOrder(totalAmount) {
@@ -136,10 +146,12 @@ async function placeOrder(totalAmount) {
         id: p.id,
         name: p.name,
         category: p.category,
-        price: p.price,
+        price: Number(l.unitPrice ?? p.price) || 0,
         image: p.image,
         description: p.description,
-        quantity: Number(l.quantity) || 0
+        quantity: Number(l.quantity) || 0,
+        size: l.size || "small",
+        toppings: Array.isArray(l.toppings) ? l.toppings : [],
       };
     })
     .filter(Boolean);
@@ -147,10 +159,13 @@ async function placeOrder(totalAmount) {
   const order = {
     items,
     totalAmount,
-    deliveryMethod,
-    paymentMethod: paymentMethod === "online" ? "online" : "cod",
-    status: paymentMethod === "online" ? "pendingPayment" : "placed",
-    customer: collectCustomerDetails()
+    orderMethod,
+    // Keep legacy field for backward compatibility.
+    deliveryMethod: orderMethod,
+    paymentMethod: orderMethod === "pickup" ? "cod" : (paymentMethod === "online" ? "online" : "cod"),
+    status: "pending",
+    payerName: collectCustomerDetails().payerName,
+    customer: collectCustomerDetails(),
   };
 
   try {
@@ -180,7 +195,7 @@ async function boot() {
   const delivery = document.getElementById("pp-delivery-delivery");
 
   pickup.addEventListener("click", () => {
-    deliveryMethod = "pickup";
+    orderMethod = "pickup";
     setPressed(pickup, true);
     setPressed(delivery, false);
     updateCustomerFieldsVisibility();
@@ -188,7 +203,7 @@ async function boot() {
     updatePlaceOrderState();
   });
   delivery.addEventListener("click", () => {
-    deliveryMethod = "delivery";
+    orderMethod = "delivery";
     setPressed(delivery, true);
     setPressed(pickup, false);
     updateCustomerFieldsVisibility();
@@ -196,7 +211,7 @@ async function boot() {
     updatePlaceOrderState();
   });
 
-  ["pp-customer-name", "pp-customer-phone", "pp-customer-address", "pp-pickup-note"].forEach((id) => {
+  ["pp-customer-name", "pp-customer-phone", "pp-customer-address", "pp-pickup-note", "pp-payer-name"].forEach((id) => {
     const el = document.getElementById(id);
     el.addEventListener("input", updatePlaceOrderState);
   });

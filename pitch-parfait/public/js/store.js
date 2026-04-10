@@ -46,7 +46,7 @@ export async function getCartLines() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function setCartQty(productId, quantity) {
+export async function setCartQty(productId, quantity, extra = {}) {
   const qty = Math.max(0, Math.min(99, Math.floor(Number(quantity) || 0)));
   if (!isFirebaseConfigured() || !db) return;
   await waitForAuthReady();
@@ -59,7 +59,13 @@ export async function setCartQty(productId, quantity) {
   }
   await firestore.setDoc(
     ref,
-    { userId: user.uid, productId, quantity: qty, updatedAt: firestore.serverTimestamp() },
+    {
+      userId: user.uid,
+      productId,
+      quantity: qty,
+      updatedAt: firestore.serverTimestamp(),
+      ...extra,
+    },
     { merge: true }
   );
 }
@@ -134,5 +140,29 @@ export async function listOrders(limitCount = 100) {
   );
   const snap = await firestore.getDocs(q);
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+function toMillis(value) {
+  if (!value) return 0;
+  if (typeof value?.toDate === "function") return value.toDate().getTime();
+  if (typeof value?.seconds === "number") return value.seconds * 1000;
+  const t = new Date(value).getTime();
+  return Number.isFinite(t) ? t : 0;
+}
+
+export async function listOrdersForCurrentUser(limitCount = 100) {
+  if (!isFirebaseConfigured() || !db) return [];
+  await waitForAuthReady();
+  const user = currentUser();
+  if (!user) return [];
+  const q = firestore.query(
+    firestore.collection(db, ORDERS),
+    firestore.where("userId", "==", user.uid),
+    firestore.limit(limitCount)
+  );
+  const snap = await firestore.getDocs(q);
+  return snap.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => toMillis(b.createdAt) - toMillis(a.createdAt));
 }
 

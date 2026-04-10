@@ -23,51 +23,82 @@
       <div class="alert alert-danger d-none" id="pp-admin-denied">Admin access required.</div>
 
       <div id="pp-admin-content" class="d-none">
-        <div class="row g-4">
-          <div class="col-12 col-lg-5">
-            <div class="pp-surface p-4">
-              <h5 class="fw-semibold mb-3">Add / Edit Product</h5>
-              <form id="pp-product-form">
-                <input type="hidden" id="pp-product-id" />
-                <label class="form-label fw-semibold">Name</label>
-                <input class="form-control mb-2" id="pp-name" required />
-                <label class="form-label fw-semibold">Category</label>
-                <select class="form-select mb-2" id="pp-category" required>
-                  <option>Parfait</option>
-                  <option>Swirls</option>
-                  <option>Shakes</option>
-                  <option>Cakes</option>
-                </select>
-                <label class="form-label fw-semibold">Price</label>
-                <input class="form-control mb-2" id="pp-price" type="number" min="0" step="0.01" required />
-                <label class="form-label fw-semibold">Image URL</label>
-                <input class="form-control mb-2" id="pp-image" required />
-                <label class="form-label fw-semibold">Description</label>
-                <textarea class="form-control mb-3" id="pp-description" rows="3" required></textarea>
-                <div class="d-flex gap-2">
-                  <button class="btn pp-btn-primary flex-grow-1" type="submit">Save Product</button>
-                  <button class="btn pp-btn-secondary" type="button" id="pp-reset">Reset</button>
+        <ul class="nav nav-tabs mb-4" id="pp-admin-tabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="pp-products-tab-btn" data-bs-toggle="tab" data-bs-target="#pp-products-tab" type="button" role="tab">Products</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pp-orders-tab-btn" data-bs-toggle="tab" data-bs-target="#pp-orders-tab" type="button" role="tab">Recent Orders</button>
+          </li>
+        </ul>
+
+        <div class="tab-content" id="pp-admin-tab-content">
+          <div class="tab-pane fade show active" id="pp-products-tab" role="tabpanel">
+            <div class="row g-4">
+              <div class="col-12 col-lg-5">
+                <div class="pp-surface p-4">
+                  <h5 class="fw-semibold mb-3">Add / Edit Product</h5>
+                  <form id="pp-product-form">
+                    <input type="hidden" id="pp-product-id" />
+                    <label class="form-label fw-semibold">Name</label>
+                    <input class="form-control mb-2" id="pp-name" required />
+                    <label class="form-label fw-semibold">Category</label>
+                    <select class="form-select mb-2" id="pp-category" required>
+                      <option>Parfait</option>
+                      <option>Swirls</option>
+                      <option>Shakes</option>
+                      <option>Cakes</option>
+                    </select>
+                    <label class="form-label fw-semibold">Price</label>
+                    <input class="form-control mb-2" id="pp-price" type="number" min="0" step="0.01" required />
+                    <label class="form-label fw-semibold">Product Image</label>
+                    <input class="form-control mb-2" id="pp-image-file" type="file" accept="image/*" />
+                    <div class="small pp-muted mb-2">Select an image file. It will be stored as base64 for this static app.</div>
+                    <img id="pp-image-preview" class="pp-admin-image-preview d-none mb-2" alt="Product preview" />
+                    <label class="form-label fw-semibold">Description</label>
+                    <textarea class="form-control mb-3" id="pp-description" rows="3" required></textarea>
+                    <div class="d-flex gap-2">
+                      <button class="btn pp-btn-primary flex-grow-1" type="submit">Save Product</button>
+                      <button class="btn pp-btn-secondary" type="button" id="pp-reset">Reset</button>
+                    </div>
+                  </form>
                 </div>
-              </form>
-            </div>
-          </div>
-          <div class="col-12 col-lg-7">
-            <div class="pp-surface p-4 mb-4">
-              <h5 class="fw-semibold mb-3">Products</h5>
-              <div class="table-responsive">
-                <table class="table align-middle">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>Category</th>
-                      <th>Price</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody id="pp-products-body"></tbody>
-                </table>
+              </div>
+              <div class="col-12 col-lg-7">
+                <div class="pp-surface p-4 mb-4">
+                  <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                    <h5 class="fw-semibold mb-0">Products</h5>
+                    <div class="d-flex align-items-center gap-2">
+                      <label class="small pp-muted mb-0" for="pp-products-category-filter">Category</label>
+                      <select class="form-select form-select-sm" id="pp-products-category-filter">
+                        <option value="all">All</option>
+                        <option value="Parfait">Parfait</option>
+                        <option value="Swirls">Swirls</option>
+                        <option value="Shakes">Shakes</option>
+                        <option value="Cakes">Cakes</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="table-responsive">
+                    <table class="table align-middle">
+                      <thead>
+                        <tr>
+                          <th>Name</th>
+                          <th>Category</th>
+                          <th>Price</th>
+                          <th></th>
+                        </tr>
+                      </thead>
+                      <tbody id="pp-products-body"></tbody>
+                    </table>
+                  </div>
+                  <div class="d-flex justify-content-end mt-3" id="pp-products-pagination"></div>
+                </div>
               </div>
             </div>
+          </div>
+
+          <div class="tab-pane fade" id="pp-orders-tab" role="tabpanel">
             <div class="pp-surface p-4">
               <h5 class="fw-semibold mb-3">Recent Orders</h5>
               <div class="table-responsive">
@@ -75,8 +106,8 @@
                   <thead>
                     <tr>
                       <th>Order ID</th>
-                      <th>User</th>
-                      <th>Created</th>
+                      <th>Customer</th>
+                      <th>Date</th>
                       <th>Total</th>
                       <th>Status</th>
                       <th></th>
@@ -110,22 +141,13 @@
                   <div class="col-12 col-md-6">
                     <div class="pp-muted small">Update Status</div>
                     <div class="d-flex gap-2 mt-1">
-                      <select class="form-select form-select-sm" id="pp-detail-status-select">
-                        <option value="placed">placed</option>
-                        <option value="pendingPayment">pendingPayment</option>
-                        <option value="paid">paid</option>
-                        <option value="preparing">preparing</option>
-                        <option value="outForDelivery">outForDelivery</option>
-                        <option value="readyForPickup">readyForPickup</option>
-                        <option value="completed">completed</option>
-                        <option value="cancelled">cancelled</option>
-                      </select>
+                      <select class="form-select form-select-sm" id="pp-detail-status-select"></select>
                       <button class="btn btn-sm pp-btn-secondary" id="pp-detail-status-save" type="button">Save</button>
                     </div>
                   </div>
                   <div class="col-12 col-md-6">
-                    <div class="pp-muted small">Delivery Method</div>
-                    <div class="fw-semibold" id="pp-detail-delivery"></div>
+                    <div class="pp-muted small">Order Method</div>
+                    <div class="fw-semibold" id="pp-detail-order-method"></div>
                   </div>
                   <div class="col-12 col-md-6">
                     <div class="pp-muted small">Payment Method</div>

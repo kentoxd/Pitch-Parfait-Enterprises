@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" preserveAspectRatio="xMidYMid slice">
+  <defs><linearGradient id="d" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#fce4ec"/><stop offset="1" stop-color="#f8bbd9"/></linearGradient></defs>
+  <rect width="900" height="360" fill="url(#d)"/>
+  <text x="450" y="200" text-anchor="middle" font-family="system-ui,sans-serif" font-size="56" font-weight="700" fill="#880e4f">CAKES</text>
+</svg>
