@@ -18,8 +18,10 @@
         <div class="col-12 col-lg-7">
           <div class="pp-surface p-4 p-md-5">
             <div class="badge rounded-pill pp-badge">Payment</div>
-            <h2 class="pp-brand" style="margin-top:10px;margin-bottom:6px;">Online Payment (Dummy)</h2>
+            <h2 class="pp-brand" style="margin-top:10px;margin-bottom:6px;">Confirm Order & Payment</h2>
             <div class="pp-muted">Total amount: <span class="fw-semibold" id="pp-amount">₱0.00</span></div>
+            <div class="pp-muted mt-1">Delivery: <span class="fw-semibold" id="pp-method-delivery">-</span></div>
+            <div class="pp-muted">Payment: <span class="fw-semibold" id="pp-method-payment">-</span></div>
 
             <div class="alert alert-warning d-none mt-3" id="pp-pay-warning" role="alert">
               Missing or invalid <code>orderId</code>. Please go back to checkout.
@@ -27,15 +29,27 @@
 
             <form class="mt-4" id="pp-pay-form">
               <div class="mb-3">
-                <label class="form-label fw-semibold" for="pp-pay-name">Name</label>
+                <label class="form-label fw-semibold" for="pp-pay-name">Full Name</label>
                 <input class="form-control form-control-lg" id="pp-pay-name" required placeholder="Your name" />
               </div>
               <div class="mb-3">
+                <label class="form-label fw-semibold" for="pp-pay-phone">Phone</label>
+                <input class="form-control form-control-lg" id="pp-pay-phone" required placeholder="+63 912 345 6789" />
+              </div>
+              <div class="mb-3 d-none" id="pp-pay-address-wrap">
+                <label class="form-label fw-semibold" for="pp-pay-address">Delivery Address</label>
+                <textarea class="form-control form-control-lg" id="pp-pay-address" rows="2" placeholder="House no., street, barangay, city"></textarea>
+              </div>
+              <div class="mb-3 d-none" id="pp-pay-pickup-note-wrap">
+                <label class="form-label fw-semibold" for="pp-pay-pickup-note">Pickup Note (Optional)</label>
+                <input class="form-control form-control-lg" id="pp-pay-pickup-note" placeholder="Preferred pickup time" />
+              </div>
+              <div class="mb-3 d-none" id="pp-pay-ref-wrap">
                 <label class="form-label fw-semibold" for="pp-pay-ref">Reference Number</label>
-                <input class="form-control form-control-lg" id="pp-pay-ref" required placeholder="e.g., 1234567890" />
+                <input class="form-control form-control-lg" id="pp-pay-ref" placeholder="e.g., 1234567890" />
                 <div class="form-text">Mock field only. No real payment integration.</div>
               </div>
-              <button class="btn pp-btn-primary w-100" type="submit" id="pp-confirm">Confirm Payment</button>
+              <button class="btn pp-btn-primary w-100" type="submit" id="pp-confirm">Confirm & Place Order</button>
               <a class="btn btn-link pp-muted w-100 mt-2" href="./checkout.html">Back to checkout</a>
             </form>
           </div>

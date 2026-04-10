@@ -45,6 +45,27 @@
             <div class="pp-muted small mb-2">Options change based on delivery method.</div>
             <div class="row g-2" id="pp-payment-options"></div>
 
+            <div class="fw-semibold mt-4 mb-2">Customer details</div>
+            <div class="pp-muted small mb-2">Please fill this before placing order (dummy form).</div>
+            <div class="row g-2">
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold mb-1" for="pp-customer-name">Full Name</label>
+                <input class="form-control" id="pp-customer-name" placeholder="Juan Dela Cruz" />
+              </div>
+              <div class="col-12 col-md-6">
+                <label class="form-label small fw-semibold mb-1" for="pp-customer-phone">Phone</label>
+                <input class="form-control" id="pp-customer-phone" placeholder="+63 912 345 6789" />
+              </div>
+              <div class="col-12 d-none" id="pp-delivery-address-wrap">
+                <label class="form-label small fw-semibold mb-1" for="pp-customer-address">Delivery Address</label>
+                <textarea class="form-control" id="pp-customer-address" rows="2" placeholder="House no., street, barangay, city"></textarea>
+              </div>
+              <div class="col-12 d-none" id="pp-pickup-note-wrap">
+                <label class="form-label small fw-semibold mb-1" for="pp-pickup-note">Pickup Note (Optional)</label>
+                <input class="form-control" id="pp-pickup-note" placeholder="Preferred pickup time / note" />
+              </div>
+            </div>
+
             <div class="mt-4">
               <button class="btn pp-btn-primary w-100" type="button" id="pp-place-order" disabled>
                 Place Order

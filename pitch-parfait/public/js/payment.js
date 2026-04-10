@@ -49,19 +49,64 @@ async function boot() {
 
   document.getElementById("pp-amount").textContent = money(order.totalAmount || 0);
   document.getElementById("pp-pay-total").textContent = money(order.totalAmount || 0);
+  document.getElementById("pp-method-delivery").textContent = order.deliveryMethod || "-";
+  document.getElementById("pp-method-payment").textContent =
+    order.paymentMethod === "online" ? "online (dummy)" : (order.paymentMethod || "cod");
   renderLines(order);
+
+  const isDelivery = order.deliveryMethod === "delivery";
+  const isOnline = order.paymentMethod === "online";
+  const addressWrap = document.getElementById("pp-pay-address-wrap");
+  const pickupWrap = document.getElementById("pp-pay-pickup-note-wrap");
+  const refWrap = document.getElementById("pp-pay-ref-wrap");
+  const addressInput = document.getElementById("pp-pay-address");
+  const refInput = document.getElementById("pp-pay-ref");
+  if (isDelivery) {
+    addressWrap.classList.remove("d-none");
+    pickupWrap.classList.add("d-none");
+    addressInput.setAttribute("required", "required");
+  } else {
+    addressWrap.classList.add("d-none");
+    pickupWrap.classList.remove("d-none");
+    addressInput.removeAttribute("required");
+  }
+  if (isOnline) {
+    refWrap.classList.remove("d-none");
+    refInput.setAttribute("required", "required");
+  } else {
+    refWrap.classList.add("d-none");
+    refInput.removeAttribute("required");
+  }
+
+  const existingCustomer = order.customer || {};
+  document.getElementById("pp-pay-name").value = existingCustomer.name || "";
+  document.getElementById("pp-pay-phone").value = existingCustomer.phone || "";
+  document.getElementById("pp-pay-address").value = existingCustomer.address || "";
+  document.getElementById("pp-pay-pickup-note").value = existingCustomer.pickupNote || "";
+  document.getElementById("pp-pay-ref").value = order.paymentReference || "";
 
   document.getElementById("pp-pay-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = document.getElementById("pp-pay-name").value.trim();
+    const phone = document.getElementById("pp-pay-phone").value.trim();
+    const address = document.getElementById("pp-pay-address").value.trim();
+    const pickupNote = document.getElementById("pp-pay-pickup-note").value.trim();
     const ref = document.getElementById("pp-pay-ref").value.trim();
-    if (!name || !ref) return;
+    if (!name || !phone) return;
+    if (isDelivery && !address) return;
+    if (isOnline && !ref) return;
 
     try {
       await updateOrder(orderId, {
-        status: "paid",
+        status: isOnline ? "paid" : "placed",
         payerName: name,
-        paymentReference: ref
+        paymentReference: isOnline ? ref : "",
+        customer: {
+          name,
+          phone,
+          address: isDelivery ? address : "",
+          pickupNote: isDelivery ? "" : pickupNote
+        }
       });
       await clearCart();
       showToast("Your order has been placed successfully!", "success");

@@ -42,6 +42,10 @@ export async function requireAuthOrRedirect(nextPath) {
   return false;
 }
 
+export async function waitForAuthReady() {
+  await authReadyPromise;
+}
+
 export function onAuthChange(cb) {
   if (!auth) {
     cb(null);

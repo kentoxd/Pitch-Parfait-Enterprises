@@ -76,12 +76,87 @@
                     <tr>
                       <th>Order ID</th>
                       <th>User</th>
+                      <th>Created</th>
                       <th>Total</th>
                       <th>Status</th>
+                      <th></th>
                     </tr>
                   </thead>
                   <tbody id="pp-orders-body"></tbody>
                 </table>
+              </div>
+
+              <hr class="my-4" />
+              <h6 class="fw-semibold mb-3">Order Details</h6>
+              <div id="pp-order-empty" class="pp-muted small">Select an order to view complete details.</div>
+              <div id="pp-order-details" class="d-none">
+                <div class="row g-3 mb-3">
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Order ID</div>
+                    <div class="fw-semibold" id="pp-detail-id"></div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Created At</div>
+                    <div class="fw-semibold" id="pp-detail-created"></div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Customer</div>
+                    <div class="fw-semibold" id="pp-detail-user"></div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Status</div>
+                    <div class="fw-semibold" id="pp-detail-status"></div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Update Status</div>
+                    <div class="d-flex gap-2 mt-1">
+                      <select class="form-select form-select-sm" id="pp-detail-status-select">
+                        <option value="placed">placed</option>
+                        <option value="pendingPayment">pendingPayment</option>
+                        <option value="paid">paid</option>
+                        <option value="preparing">preparing</option>
+                        <option value="outForDelivery">outForDelivery</option>
+                        <option value="readyForPickup">readyForPickup</option>
+                        <option value="completed">completed</option>
+                        <option value="cancelled">cancelled</option>
+                      </select>
+                      <button class="btn btn-sm pp-btn-secondary" id="pp-detail-status-save" type="button">Save</button>
+                    </div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Delivery Method</div>
+                    <div class="fw-semibold" id="pp-detail-delivery"></div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Payment Method</div>
+                    <div class="fw-semibold" id="pp-detail-payment"></div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Payer Name</div>
+                    <div class="fw-semibold" id="pp-detail-payer"></div>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <div class="pp-muted small">Payment Reference</div>
+                    <div class="fw-semibold" id="pp-detail-reference"></div>
+                  </div>
+                </div>
+
+                <div class="table-responsive">
+                  <table class="table align-middle">
+                    <thead>
+                      <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Line Total</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pp-detail-items"></tbody>
+                  </table>
+                </div>
+                <div class="d-flex justify-content-end">
+                  <div class="fw-semibold">Order Total: <span id="pp-detail-total"></span></div>
+                </div>
               </div>
             </div>
           </div>

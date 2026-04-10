@@ -1,6 +1,6 @@
 import { db, firestore, isFirebaseConfigured } from "../lib/firebase.js";
 import { demoProducts } from "./demoData.js";
-import { currentUser } from "./auth.js";
+import { currentUser, waitForAuthReady } from "./auth.js";
 
 const PRODUCTS = "products";
 const CART = "cart";
@@ -38,6 +38,7 @@ export async function seedDemoProducts() {
 
 export async function getCartLines() {
   if (!isFirebaseConfigured() || !db) return [];
+  await waitForAuthReady();
   const user = currentUser();
   if (!user) return [];
   const q = firestore.query(firestore.collection(db, CART), firestore.where("userId", "==", user.uid));
@@ -48,6 +49,7 @@ export async function getCartLines() {
 export async function setCartQty(productId, quantity) {
   const qty = Math.max(0, Math.min(99, Math.floor(Number(quantity) || 0)));
   if (!isFirebaseConfigured() || !db) return;
+  await waitForAuthReady();
   const user = currentUser();
   if (!user) throw new Error("Login required");
   const ref = firestore.doc(db, CART, cartDocId(user.uid, productId));
@@ -70,6 +72,7 @@ export async function clearCart() {
 
 export async function createOrder(order) {
   if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
+  await waitForAuthReady();
   const user = currentUser();
   if (!user) throw new Error("Login required");
   const ref = await firestore.addDoc(firestore.collection(db, ORDERS), {
@@ -95,6 +98,7 @@ export async function updateOrder(orderId, patch) {
 
 export async function upsertProduct(product) {
   if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
+  await waitForAuthReady();
   const payload = {
     name: String(product.name || "").trim(),
     category: String(product.category || "").trim(),
@@ -116,11 +120,13 @@ export async function upsertProduct(product) {
 
 export async function deleteProduct(productId) {
   if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
+  await waitForAuthReady();
   await firestore.deleteDoc(firestore.doc(db, PRODUCTS, productId));
 }
 
 export async function listOrders(limitCount = 100) {
   if (!isFirebaseConfigured() || !db) return [];
+  await waitForAuthReady();
   const q = firestore.query(
     firestore.collection(db, ORDERS),
     firestore.orderBy("createdAt", "desc"),

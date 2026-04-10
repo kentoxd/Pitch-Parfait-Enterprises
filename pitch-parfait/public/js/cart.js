@@ -48,8 +48,13 @@ async function render() {
   const host = document.getElementById("pp-cart-lines");
   const empty = document.getElementById("pp-empty");
   const checkout = document.getElementById("pp-checkout");
-
-  const cartLines = await getCartLines();
+  let cartLines = [];
+  try {
+    cartLines = await getCartLines();
+  } catch (error) {
+    console.error("Load cart failed", error);
+    showToast("Unable to load cart right now.", "danger");
+  }
   if (!cartLines.length) {
     host.innerHTML = "";
     empty.classList.remove("d-none");

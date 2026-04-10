@@ -90,10 +90,15 @@ async function boot() {
       return;
     }
     if (!(await requireAuthOrRedirect(window.location.pathname + window.location.search))) return;
-    const lines = await getCartLines();
-    const line = lines.find((l) => l.productId === product.id);
-    await setCartQty(product.id, (Number(line?.quantity) || 0) + 1);
-    showToast("Added to cart!", "success");
+    try {
+      const lines = await getCartLines();
+      const line = lines.find((l) => l.productId === product.id);
+      await setCartQty(product.id, (Number(line?.quantity) || 0) + 1);
+      showToast("Added to cart!", "success");
+    } catch (error) {
+      console.error("Add to cart failed", error);
+      showToast("Unable to add to cart. Please try again.", "danger");
+    }
   });
 }
 

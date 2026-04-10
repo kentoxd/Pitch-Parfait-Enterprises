@@ -8,6 +8,42 @@ let paymentMethod = null; // "cod" | "online"
 let products = [];
 let cartLines = [];
 
+function collectCustomerDetails() {
+  return {
+    name: document.getElementById("pp-customer-name").value.trim(),
+    phone: document.getElementById("pp-customer-phone").value.trim(),
+    address: document.getElementById("pp-customer-address").value.trim(),
+    pickupNote: document.getElementById("pp-pickup-note").value.trim(),
+  };
+}
+
+function updateCustomerFieldsVisibility() {
+  const deliveryWrap = document.getElementById("pp-delivery-address-wrap");
+  const pickupWrap = document.getElementById("pp-pickup-note-wrap");
+  const addressInput = document.getElementById("pp-customer-address");
+
+  if (deliveryMethod === "delivery") {
+    deliveryWrap.classList.remove("d-none");
+    pickupWrap.classList.add("d-none");
+    addressInput.setAttribute("required", "required");
+  } else if (deliveryMethod === "pickup") {
+    deliveryWrap.classList.add("d-none");
+    pickupWrap.classList.remove("d-none");
+    addressInput.removeAttribute("required");
+  } else {
+    deliveryWrap.classList.add("d-none");
+    pickupWrap.classList.add("d-none");
+    addressInput.removeAttribute("required");
+  }
+}
+
+function isCustomerDetailsValid() {
+  const d = collectCustomerDetails();
+  if (!d.name || !d.phone) return false;
+  if (deliveryMethod === "delivery" && !d.address) return false;
+  return true;
+}
+
 function allowedPayments() {
   if (deliveryMethod === "pickup") return ["cod"];
   if (deliveryMethod === "delivery") return ["cod", "online"];
@@ -80,9 +116,11 @@ function renderSummary() {
 function updatePlaceOrderState() {
   const btn = document.getElementById("pp-place-order");
   const hint = document.getElementById("pp-place-hint");
-  const ok = Boolean(deliveryMethod && paymentMethod);
+  const ok = Boolean(deliveryMethod && paymentMethod && isCustomerDetailsValid());
   btn.disabled = !ok;
-  hint.textContent = ok ? "Ready to place your order." : "Select delivery method and payment method to continue.";
+  hint.textContent = ok
+    ? "Ready to place your order."
+    : "Select delivery/payment and complete customer details.";
 }
 
 async function placeOrder(totalAmount) {
@@ -111,20 +149,17 @@ async function placeOrder(totalAmount) {
     totalAmount,
     deliveryMethod,
     paymentMethod: paymentMethod === "online" ? "online" : "cod",
-    status: paymentMethod === "online" ? "pendingPayment" : "placed"
+    status: paymentMethod === "online" ? "pendingPayment" : "placed",
+    customer: collectCustomerDetails()
   };
 
   try {
-    if (paymentMethod === "online") {
-      const orderId = await createOrder({ ...order, paymentMethod: "online" });
-      window.location.href = `./payment.html?orderId=${encodeURIComponent(orderId)}`;
-      return;
-    }
-
-    await createOrder({ ...order, paymentMethod: "cod" });
-    await clearCart();
-    showToast("Your order has been placed successfully!", "success");
-    setTimeout(() => (window.location.href = "./home.html"), 1200);
+    const orderId = await createOrder({
+      ...order,
+      // Both flows proceed to payment page for final details confirmation.
+      status: paymentMethod === "online" ? "pendingPayment" : "pendingConfirmation",
+    });
+    window.location.href = `./payment.html?orderId=${encodeURIComponent(orderId)}`;
   } catch {
     showToast("Unable to place order. Check Firestore rules.", "danger");
   }
@@ -148,6 +183,7 @@ async function boot() {
     deliveryMethod = "pickup";
     setPressed(pickup, true);
     setPressed(delivery, false);
+    updateCustomerFieldsVisibility();
     renderPaymentOptions();
     updatePlaceOrderState();
   });
@@ -155,10 +191,17 @@ async function boot() {
     deliveryMethod = "delivery";
     setPressed(delivery, true);
     setPressed(pickup, false);
+    updateCustomerFieldsVisibility();
     renderPaymentOptions();
     updatePlaceOrderState();
   });
 
+  ["pp-customer-name", "pp-customer-phone", "pp-customer-address", "pp-pickup-note"].forEach((id) => {
+    const el = document.getElementById(id);
+    el.addEventListener("input", updatePlaceOrderState);
+  });
+
+  updateCustomerFieldsVisibility();
   renderPaymentOptions();
   updatePlaceOrderState();
 
