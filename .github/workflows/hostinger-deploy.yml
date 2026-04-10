@@ -27,4 +27,3 @@ jobs:
           port: 21
           local-dir: ./pitch-parfait/public/
           server-dir: /public_html/
-          dangerous-clean-slate: true
