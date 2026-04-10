@@ -5,10 +5,10 @@ import { escapeHtml, showToast } from "./ui.js";
 const categories = ["Parfait", "Swirls", "Shakes", "Cakes"];
 let allProducts = [];
 const categoryImages = {
-  Parfait: "https://cdn.discordapp.com/attachments/1488093221014994986/1488093274630787092/parfaitbanner.png?ex=69cb865c&is=69ca34dc&hm=3862f6b74006317c66d304eec227b44e7d9c49afe4ce1c2af6cad28588f329fd&",
-  Swirls: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121500648345732/swirls_banner.png?ex=69cba0a5&is=69ca4f25&hm=ef45026229f21d2eea34882b625f975f8a3f4fa2027063bea67296d7c08db25d&",
-  Shakes: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121481341960292/shake_banner.png?ex=69cba0a1&is=69ca4f21&hm=7bbe664ad55d3be066f60c5054e9d6511e4c7de21f72b162aa7c42376a447250&",
-  Cakes: "https://cdn.discordapp.com/attachments/1488093221014994986/1488120795849949194/banner_cake.jpg?ex=69cb9ffd&is=69ca4e7d&hm=77a85c606aa120a194b37252e2d95cf03a8f1a14b499ddaf9856f13c384252d8&"
+  Parfait: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121452484890666/parfait_banner.png?ex=69d9785a&is=69d826da&hm=1c396c345d35560efbe3d9b93d0b908ae6386c5702ecd1a241b3deac24866cbf&",
+  Swirls: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121500648345732/swirls_banner.png?ex=69d97865&is=69d826e5&hm=3a60aba32154c358024c3052dfe9805e0c2dde8c8295bb6e6df558a1680e3c7f&",
+  Shakes: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121481341960292/shake_banner.png?ex=69d97861&is=69d826e1&hm=2d67ed3d7223ddeafc3fe1b54f3f23cc84a7bc96938f5bfd2875ef0e06d2aade&",
+  Cakes: "https://cdn.discordapp.com/attachments/1488093221014994986/1488120795849949194/banner_cake.jpg?ex=69d977bd&is=69d8263d&hm=675ddb676c898270b073c54e3b5edc7bf8ac6ef9b350025afeaa6eced324e301&"
 };
 
 function renderCategoryGrid() {
