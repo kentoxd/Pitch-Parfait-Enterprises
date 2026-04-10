@@ -5,10 +5,10 @@ import { escapeHtml, showToast } from "./ui.js";
 const categories = ["Parfait", "Swirls", "Shakes", "Cakes"];
 let allProducts = [];
 const categoryImages = {
-  Parfait: "public/assets/parfaitbanner.png",
-  Swirls: "/assets/swirls_banner.png",
-  Shakes: "/assets/shake_banner.png",
-  Cakes: "/assets/cake_banner.png"
+  Parfait: "../assets/parfaitbanner.png",
+  Swirls: "../assets/swirls_banner.png",
+  Shakes: "../assets/shake_banner.png",
+  Cakes: "../assets/cake_banner.png"
 };
 
 function renderCategoryGrid() {
