@@ -5,10 +5,10 @@ import { escapeHtml, showToast } from "./ui.js";
 const categories = ["Parfait", "Swirls", "Shakes", "Cakes"];
 let allProducts = [];
 const categoryImages = {
-  Parfait: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121452484890666/parfait_banner.png?ex=69d9785a&is=69d826da&hm=1c396c345d35560efbe3d9b93d0b908ae6386c5702ecd1a241b3deac24866cbf&",
-  Swirls: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121500648345732/swirls_banner.png?ex=69d97865&is=69d826e5&hm=3a60aba32154c358024c3052dfe9805e0c2dde8c8295bb6e6df558a1680e3c7f&",
-  Shakes: "https://cdn.discordapp.com/attachments/1488093221014994986/1488121481341960292/shake_banner.png?ex=69d97861&is=69d826e1&hm=2d67ed3d7223ddeafc3fe1b54f3f23cc84a7bc96938f5bfd2875ef0e06d2aade&",
-  Cakes: "https://cdn.discordapp.com/attachments/1488093221014994986/1488120795849949194/banner_cake.jpg?ex=69d977bd&is=69d8263d&hm=675ddb676c898270b073c54e3b5edc7bf8ac6ef9b350025afeaa6eced324e301&"
+  Parfait: "public/assets/parfaitbanner.png",
+  Swirls: "/assets/swirls_banner.png",
+  Shakes: "/assets/shake_banner.png",
+  Cakes: "/assets/cake_banner.png"
 };
 
 function renderCategoryGrid() {
