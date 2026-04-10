@@ -16,12 +16,13 @@ function renderCategoryGrid() {
   grid.innerHTML = categories
     .map((c, idx) => {
       const count = allProducts.filter((p) => String(p.category).toLowerCase() === c.toLowerCase()).length;
-      const colClass = idx === 0 || idx === 3 ? "col-12 col-lg-8 h-200" : "col-12 col-lg-4";
-      const style = "background-color: black"
+      const colClass = idx === 0 || idx === 3 ? "col-12 col-lg-8" : "col-12 col-lg-4";
+      const style = "padding: 30px;"
+      const imgClass = "h-100"
       return `
         <div class="${colClass}" style="${style}">
           <a class="pp-category-card d-block text-decoration-none" href="./category.html?category=${encodeURIComponent(c)}">
-            <img src="${escapeHtml(categoryImages[c])}" alt="${escapeHtml(c)}" />
+            <img src="${escapeHtml(categoryImages[c])}" alt="${escapeHtml(c)}" class="${imgClass}"/>
             <div class="pp-category-card__label">${escapeHtml(c.toUpperCase())}</div>
             <div class="pp-category-card__count">${count} item(s)</div>
           </a>
