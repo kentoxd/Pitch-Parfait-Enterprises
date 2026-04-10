@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - "public/**"
+      - "pitch-parfait/public/**"
       - ".github/workflows/hostinger-deploy.yml"
   workflow_dispatch:
 
@@ -20,8 +20,8 @@ jobs:
       - name: Upload public folder to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.HOSTINGER_FTP_HOST }}
-          username: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          server: 153.92.9.174
+          username: u353428729
           password: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
           protocol: ftps
           port: 21
