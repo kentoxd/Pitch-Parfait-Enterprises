@@ -17,7 +17,8 @@ function renderCategoryGrid() {
     .map((c, idx) => {
       const count = allProducts.filter((p) => String(p.category).toLowerCase() === c.toLowerCase()).length;
       const colClass = idx === 0 || idx === 3 ? "col-12 col-lg-8" : "col-12 col-lg-4";
-      const style = "padding: 30px; "
+      const style = "padding: 30px; animation: slide-in 1s ease both; animation-delay: " + (idx * 0.1) + "s;";
+      const animation = "slide-in"
       
       return `
         <div class="${colClass}" style="${style}">
