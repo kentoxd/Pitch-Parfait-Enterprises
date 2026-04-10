@@ -146,7 +146,7 @@ main.container{
   min-height: 100vh;
   background:
     linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02)),
-    url("https://cdn.discordapp.com/attachments/1488093221014994986/1488097631807733810/poster.jpg?ex=69cb8a6a&is=69ca38ea&hm=08b4db5c29230227984fdc2a7c308835466caf9a2d8d80231c4d3f8d6f089d99&") center/cover no-repeat;
+    url("../assets/banner/main.jpeg") center/cover no-repeat;
   box-shadow: var(--pp-shadow);
   overflow: hidden;
 }
@@ -180,7 +180,7 @@ main.container{
 }
 .pp-category-card img{
   width: 100%;
-  height: 220px;
+  height: 380px;
   object-fit: cover;
   transition: transform .2s ease;
 }
@@ -210,3 +210,6 @@ main.container{
   .pp-category-card img{ height: 190px; }
 }
 
+.wwo {
+  width: min(1200px, 100%);
+}
