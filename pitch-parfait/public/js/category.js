@@ -10,7 +10,7 @@ function card(p) {
   return `
     <div class="col-12 col-sm-6 col-lg-3">
       <a href="./product.html?id=${encodeURIComponent(p.id)}" class="card pp-card h-100 text-decoration-none">
-        <img class="pp-img-top" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" style="height:180px;object-fit:cover;" />
+        <img class="pp-img-top" src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" style="height:180px; i " />
         <div class="card-body">
           <div class="fw-semibold text-dark">${escapeHtml(p.name)}</div>
           <div class="pp-muted small mt-1">${money(p.price)}</div>
