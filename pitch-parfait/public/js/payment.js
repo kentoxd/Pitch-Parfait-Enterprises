@@ -2,10 +2,22 @@ import { isFirebaseConfigured } from "../lib/firebase.js";
 import { getOrder, updateOrder, clearCart } from "./store.js";
 import { escapeHtml, money, showToast } from "./ui.js";
 import { requireAuthOrRedirect } from "./auth.js";
+import { getOrderMethod, normalizeOrderMethod, orderMethodLabel } from "./orderStatus.js";
 
 function getOrderId() {
   const params = new URLSearchParams(window.location.search);
   return params.get("orderId");
+}
+
+function showValidationError(fieldId, message) {
+  const input = document.getElementById(fieldId);
+  if (!input) {
+    showToast(message, "warning");
+    return;
+  }
+  input.setCustomValidity(message);
+  input.reportValidity();
+  input.focus();
 }
 
 function renderLines(order) {
@@ -54,13 +66,13 @@ async function boot() {
 
   document.getElementById("pp-amount").textContent = money(order.totalAmount || 0);
   document.getElementById("pp-pay-total").textContent = money(order.totalAmount || 0);
-  const orderMethod = order.orderMethod || order.deliveryMethod || "-";
-  document.getElementById("pp-method-order").textContent = orderMethod;
+  const orderMethod = getOrderMethod(order);
+  document.getElementById("pp-method-order").textContent = orderMethodLabel(orderMethod);
   document.getElementById("pp-method-payment").textContent =
     order.paymentMethod === "online" ? "online (dummy)" : (order.paymentMethod || "cod");
   renderLines(order);
 
-  const isDelivery = String(orderMethod).toLowerCase() === "delivery";
+  const isDelivery = normalizeOrderMethod(orderMethod) === "delivery";
   const isOnline = order.paymentMethod === "online";
   const addressWrap = document.getElementById("pp-pay-address-wrap");
   const pickupWrap = document.getElementById("pp-pay-pickup-note-wrap");
@@ -90,6 +102,10 @@ async function boot() {
   document.getElementById("pp-pay-address").value = existingCustomer.address || "";
   document.getElementById("pp-pay-pickup-note").value = existingCustomer.pickupNote || "";
   document.getElementById("pp-pay-ref").value = order.paymentReference || "";
+  ["pp-pay-name", "pp-pay-phone", "pp-pay-address", "pp-pay-pickup-note", "pp-pay-ref"].forEach((id) => {
+    const field = document.getElementById(id);
+    field?.addEventListener("input", () => field.setCustomValidity(""));
+  });
 
   document.getElementById("pp-pay-form").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -98,17 +114,18 @@ async function boot() {
     const address = document.getElementById("pp-pay-address").value.trim();
     const pickupNote = document.getElementById("pp-pay-pickup-note").value.trim();
     const ref = document.getElementById("pp-pay-ref").value.trim();
-    if (!name || !phone) return;
-    if (isDelivery && !address) return;
-    if (isOnline && !ref) return;
+    if (!name) return showValidationError("pp-pay-name", "Payer Name is required.");
+    if (!phone) return showValidationError("pp-pay-phone", "Phone is required.");
+    if (isDelivery && !address) return showValidationError("pp-pay-address", "Delivery Address is required for Delivery orders.");
+    if (isOnline && !ref) return showValidationError("pp-pay-ref", "Reference Number is required for online payments.");
 
     try {
       await updateOrder(orderId, {
         status: "processing",
         payerName: name,
         paymentReference: isOnline ? ref : "",
-        orderMethod: String(orderMethod).toLowerCase(),
-        deliveryMethod: String(orderMethod).toLowerCase(),
+        orderMethod: normalizeOrderMethod(orderMethod),
+        deliveryMethod: normalizeOrderMethod(orderMethod),
         customer: {
           name,
           phone,

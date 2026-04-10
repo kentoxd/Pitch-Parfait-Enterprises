@@ -10,6 +10,58 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin";
     }
 
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validCartData(data) {
+      return data.userId == request.auth.uid
+        && data.productId is string
+        && data.quantity is int
+        && data.quantity > 0
+        && data.quantity <= 99
+        && (!("unitPrice" in data) || (data.unitPrice is number && data.unitPrice >= 0))
+        && (!("size" in data) || data.size in ["small", "medium", "large"])
+        && (!("toppings" in data) || (data.toppings is list && data.toppings.size() <= 10))
+        && (!("variantKey" in data) || data.variantKey is string);
+    }
+
+    function ownerCanUpdateOrder() {
+      return isOwner(resource.data.userId)
+        && request.resource.data.userId == resource.data.userId
+        && request.resource.data.userEmail == resource.data.userEmail
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly([
+          "status",
+          "statusUpdatedAt",
+          "orderMethod",
+          "deliveryMethod",
+          "paymentMethod",
+          "paymentReference",
+          "payerName",
+          "customer"
+        ])
+        && request.resource.data.paymentMethod in ["cod", "online"]
+        && request.resource.data.orderMethod in ["pickup", "delivery"]
+        && request.resource.data.deliveryMethod in ["pickup", "delivery"]
+        && (
+          !( "status" in request.resource.data.diff(resource.data).changedKeys() )
+          || (
+            request.resource.data.status == "processing"
+            && (resource.data.status in ["pending", "pendingPayment", "pendingConfirmation", "placed", "paid"])
+          )
+        );
+    }
+
+    function validOrderCreate(data) {
+      return data.userId == request.auth.uid
+        && data.items is list
+        && data.items.size() > 0
+        && data.totalAmount is number
+        && data.totalAmount >= 0
+        && data.paymentMethod in ["cod", "online"]
+        && data.status in ["pending", "pendingPayment", "pendingConfirmation"];
+    }
+
     // User profiles for role management.
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || isAdmin());
@@ -30,19 +82,25 @@ service cloud.firestore {
     }
 
     // User cart lines:
-    // cart/{uid__productId} -> { userId, productId, quantity, ... }
+    // cart/{uid__productId::size::toppings} -> { userId, productId, size, toppings, quantity, ... }
     match /cart/{lineId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if signedIn()
-                                  && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if signedIn() && validCartData(request.resource.data);
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAdmin() || (
+        signedIn()
+        && resource.data.userId == request.auth.uid
+        && validCartData(request.resource.data)
+      );
+      allow delete: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Orders:
     // orders/{orderId} -> { userId, items, totalAmount, ... }
     match /orders/{orderId} {
-      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
-      allow read, update, delete: if signedIn()
-                                  && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if signedIn() && validOrderCreate(request.resource.data);
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow update: if isAdmin() || ownerCanUpdateOrder();
+      allow delete: if isAdmin();
     }
   }
 }

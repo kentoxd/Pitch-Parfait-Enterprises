@@ -1,5 +1,5 @@
 import { isFirebaseConfigured } from "../lib/firebase.js";
-import { getProducts, getCartLines, setCartQty, clearCart } from "./store.js";
+import { getProducts, getCartLines, setCartLineQty, clearCart } from "./store.js";
 import { escapeHtml, money, showToast } from "./ui.js";
 import { requireAuthOrRedirect } from "./auth.js";
 
@@ -11,7 +11,7 @@ function lineRow(p, qty) {
   const sizeLabel = p.size ? `Size: ${escapeHtml(String(p.size))}` : "";
   const toppings = Array.isArray(p.toppings) && p.toppings.length ? `Toppings: ${escapeHtml(p.toppings.join(", "))}` : "";
   return `
-    <div class="pp-surface p-3 p-lg-4" data-line="${escapeHtml(p.id)}">
+    <div class="pp-surface p-3 p-lg-4" data-line="${escapeHtml(p.lineId)}">
       <div class="row g-3 align-items-center">
         <div class="col-4 col-md-3 col-lg-2">
           <img src="${escapeHtml(p.image)}" alt="${escapeHtml(p.name)}" style="width:100%;height:86px;object-fit:cover;border-radius:14px;" />
@@ -26,13 +26,13 @@ function lineRow(p, qty) {
         <div class="col-12 col-md-4 col-lg-4">
           <div class="d-flex align-items-center justify-content-between gap-3">
             <div class="d-flex align-items-center gap-2">
-              <button class="btn pp-btn-secondary" data-dec="${escapeHtml(p.id)}" type="button">−</button>
+              <button class="btn pp-btn-secondary" data-dec="${escapeHtml(p.lineId)}" type="button">−</button>
               <div class="fw-semibold" style="min-width:32px;text-align:center;">${qty}</div>
-              <button class="btn pp-btn-secondary" data-inc="${escapeHtml(p.id)}" type="button">+</button>
+              <button class="btn pp-btn-secondary" data-inc="${escapeHtml(p.lineId)}" type="button">+</button>
             </div>
             <div class="text-end">
               <div class="fw-semibold">${money(lineTotal)}</div>
-              <button class="btn btn-link p-0 small pp-muted" data-remove="${escapeHtml(p.id)}" type="button">Remove</button>
+              <button class="btn btn-link p-0 small pp-muted" data-remove="${escapeHtml(p.lineId)}" type="button">Remove</button>
             </div>
           </div>
         </div>
@@ -72,7 +72,7 @@ async function render() {
       .map((l) => {
         const p = products.find((x) => x.id === l.productId);
         if (!p) return "";
-        return lineRow({ ...p, unitPrice: l.unitPrice, size: l.size, toppings: l.toppings }, l.quantity);
+        return lineRow({ ...p, lineId: l.id, unitPrice: l.unitPrice, size: l.size, toppings: l.toppings }, l.quantity);
       })
       .join("");
   }
@@ -84,23 +84,23 @@ async function render() {
   host.querySelectorAll("[data-inc]").forEach((b) =>
     b.addEventListener("click", async () => {
       const id = b.getAttribute("data-inc");
-      const line = cartLines.find((l) => l.productId === id);
-      await setCartQty(id, (Number(line?.quantity) || 0) + 1);
+      const line = cartLines.find((l) => l.id === id);
+      await setCartLineQty(id, (Number(line?.quantity) || 0) + 1);
       await render();
     })
   );
   host.querySelectorAll("[data-dec]").forEach((b) =>
     b.addEventListener("click", async () => {
       const id = b.getAttribute("data-dec");
-      const line = cartLines.find((l) => l.productId === id);
-      await setCartQty(id, (Number(line?.quantity) || 0) - 1);
+      const line = cartLines.find((l) => l.id === id);
+      await setCartLineQty(id, (Number(line?.quantity) || 0) - 1);
       await render();
     })
   );
   host.querySelectorAll("[data-remove]").forEach((b) =>
     b.addEventListener("click", async () => {
       const id = b.getAttribute("data-remove");
-      await setCartQty(id, 0);
+      await setCartLineQty(id, 0);
       showToast("Removed from cart.", "success");
       await render();
     })

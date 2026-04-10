@@ -1,6 +1,7 @@
 import { deleteProduct, getProducts, listOrders, updateOrder, upsertProduct } from "./store.js";
 import { currentUser, isAdminUser, requireAuthOrRedirect } from "./auth.js";
 import { money, showToast, escapeHtml } from "./ui.js";
+import { getOrderMethod, normalizeOrderStatus, orderMethodLabel, statusBadgeHtml, statusOptionsForMethod } from "./orderStatus.js";
 
 let products = [];
 let orders = [];
@@ -10,64 +11,10 @@ let productFilterCategory = "all";
 let productPage = 1;
 const PRODUCTS_PER_PAGE = 10;
 
-function getOrderMethod(order) {
-  return String(order?.orderMethod || order?.deliveryMethod || "").toLowerCase();
-}
-
-function normalizeOrderStatus(rawStatus) {
-  const status = String(rawStatus || "").toLowerCase().replaceAll(/\s+/g, "");
-  if (status.includes("cancel")) return "cancelled";
-  if (status === "finished" || status === "completed") return "finished";
-  if (status === "readyforpickup") return "readyForPickup";
-  if (status === "delivered") return "delivered";
-  if (status === "shipped" || status === "outfordelivery") return "shipped";
-  if (status === "processing" || status === "paid" || status === "preparing" || status === "readyforpickup") {
-    return "processing";
-  }
-  return "pending";
-}
-
-function statusMeta(rawStatus) {
-  const normalized = normalizeOrderStatus(rawStatus);
-  const byStatus = {
-    pending: { label: "Pending", className: "pp-status--pending" },
-    processing: { label: "Processing", className: "pp-status--processing" },
-    readyForPickup: { label: "Ready for Pickup", className: "pp-status--processing" },
-    shipped: { label: "Shipped", className: "pp-status--shipped" },
-    delivered: { label: "Delivered", className: "pp-status--delivered" },
-    finished: { label: "Finished", className: "pp-status--finished" },
-    cancelled: { label: "Cancelled", className: "pp-status--cancelled" },
-  };
-  return byStatus[normalized];
-}
-
-function statusBadge(rawStatus) {
-  const meta = statusMeta(rawStatus);
-  return `<span class="pp-status-pill ${meta.className}">${meta.label}</span>`;
-}
-
-function statusOptionsForMethod(orderMethod) {
-  if (orderMethod === "pickup") {
-    return [
-      { value: "pending", label: "Pending" },
-      { value: "processing", label: "Processing" },
-      { value: "readyForPickup", label: "Ready for Pickup" },
-      { value: "finished", label: "Finished" },
-    ];
-  }
-  return [
-    { value: "pending", label: "Pending" },
-    { value: "processing", label: "Processing" },
-    { value: "shipped", label: "Shipped" },
-    { value: "delivered", label: "Delivered" },
-    { value: "finished", label: "Finished" },
-  ];
-}
-
 function renderStatusSelect(order) {
   const select = document.getElementById("pp-detail-status-select");
   const orderMethod = getOrderMethod(order);
-  const options = statusOptionsForMethod(orderMethod);
+  const options = statusOptionsForMethod(orderMethod || "delivery");
   select.innerHTML = options.map((opt) => `<option value="${escapeHtml(opt.value)}">${escapeHtml(opt.label)}</option>`).join("");
   const normalized = normalizeOrderStatus(order.status);
   const allowed = new Set(options.map((opt) => opt.value));
@@ -230,7 +177,7 @@ async function loadOrders() {
         <td>${escapeHtml(o.userEmail || o.userId || "-")}</td>
         <td>${escapeHtml(formatDate(o.createdAt))}</td>
         <td>${money(o.totalAmount || 0)}</td>
-        <td>${statusBadge(o.status)}</td>
+        <td>${statusBadgeHtml(o.status)}</td>
         <td class="text-end">
           <button class="btn btn-sm pp-btn-secondary" data-view-order="${escapeHtml(o.id)}">View Details</button>
         </td>
@@ -273,9 +220,9 @@ function renderOrderDetails(order) {
   document.getElementById("pp-detail-id").textContent = order.id || "-";
   document.getElementById("pp-detail-created").textContent = formatDate(order.createdAt);
   document.getElementById("pp-detail-user").textContent = order.userEmail || order.userId || "-";
-  document.getElementById("pp-detail-status").innerHTML = statusBadge(order.status);
+  document.getElementById("pp-detail-status").innerHTML = statusBadgeHtml(order.status);
   const orderMethod = getOrderMethod(order);
-  document.getElementById("pp-detail-order-method").textContent = orderMethod ? `${orderMethod.charAt(0).toUpperCase()}${orderMethod.slice(1)}` : "-";
+  document.getElementById("pp-detail-order-method").textContent = orderMethodLabel(orderMethod);
   document.getElementById("pp-detail-payment").textContent = order.paymentMethod || "-";
   document.getElementById("pp-detail-payer").textContent = order.payerName || "-";
   document.getElementById("pp-detail-reference").textContent = order.paymentReference || "-";

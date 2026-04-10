@@ -1,7 +1,8 @@
 import { isFirebaseConfigured } from "../lib/firebase.js";
-import { getProducts, getCartLines, createOrder, clearCart } from "./store.js";
+import { getProducts, getCartLines, createOrder } from "./store.js";
 import { escapeHtml, money, setPressed, showToast } from "./ui.js";
 import { requireAuthOrRedirect } from "./auth.js";
+import { normalizeOrderMethod } from "./orderStatus.js";
 
 let orderMethod = null; // "pickup" | "delivery"
 let paymentMethod = null; // "cod" | "online"
@@ -133,6 +134,35 @@ function updatePlaceOrderState() {
     : "Select order method/payment and complete customer details.";
 }
 
+function validateCustomerDetails() {
+  const details = collectCustomerDetails();
+  if (!details.name) return { ok: false, message: "Full Name is required.", fieldId: "pp-customer-name" };
+  if (!details.phone) return { ok: false, message: "Phone is required.", fieldId: "pp-customer-phone" };
+  if (!details.payerName) return { ok: false, message: "Payer Name is required.", fieldId: "pp-payer-name" };
+  if (orderMethod === "delivery" && !details.address) {
+    return { ok: false, message: "Delivery Address is required for Delivery orders.", fieldId: "pp-customer-address" };
+  }
+  if (orderMethod === "delivery" && !paymentMethod) {
+    return { ok: false, message: "Please select a payment method for Delivery.", fieldId: null };
+  }
+  return { ok: true };
+}
+
+function showValidationError(fieldId, message) {
+  if (!fieldId) {
+    showToast(message, "warning");
+    return;
+  }
+  const input = document.getElementById(fieldId);
+  if (!input) {
+    showToast(message, "warning");
+    return;
+  }
+  input.setCustomValidity(message);
+  input.reportValidity();
+  input.focus();
+}
+
 async function placeOrder(totalAmount) {
   if (!isFirebaseConfigured()) {
     showToast("Firebase config missing. Can't save orders yet.", "warning");
@@ -155,13 +185,18 @@ async function placeOrder(totalAmount) {
       };
     })
     .filter(Boolean);
+  const validation = validateCustomerDetails();
+  if (!validation.ok) {
+    showValidationError(validation.fieldId, validation.message);
+    return;
+  }
 
   const order = {
     items,
     totalAmount,
-    orderMethod,
+    orderMethod: normalizeOrderMethod(orderMethod),
     // Keep legacy field for backward compatibility.
-    deliveryMethod: orderMethod,
+    deliveryMethod: normalizeOrderMethod(orderMethod),
     paymentMethod: orderMethod === "pickup" ? "cod" : (paymentMethod === "online" ? "online" : "cod"),
     status: "pending",
     payerName: collectCustomerDetails().payerName,
@@ -169,11 +204,7 @@ async function placeOrder(totalAmount) {
   };
 
   try {
-    const orderId = await createOrder({
-      ...order,
-      // Both flows proceed to payment page for final details confirmation.
-      status: paymentMethod === "online" ? "pendingPayment" : "pendingConfirmation",
-    });
+    const orderId = await createOrder(order);
     window.location.href = `./payment.html?orderId=${encodeURIComponent(orderId)}`;
   } catch {
     showToast("Unable to place order. Check Firestore rules.", "danger");
@@ -195,7 +226,7 @@ async function boot() {
   const delivery = document.getElementById("pp-delivery-delivery");
 
   pickup.addEventListener("click", () => {
-    orderMethod = "pickup";
+    orderMethod = normalizeOrderMethod("pickup");
     setPressed(pickup, true);
     setPressed(delivery, false);
     updateCustomerFieldsVisibility();
@@ -203,7 +234,7 @@ async function boot() {
     updatePlaceOrderState();
   });
   delivery.addEventListener("click", () => {
-    orderMethod = "delivery";
+    orderMethod = normalizeOrderMethod("delivery");
     setPressed(delivery, true);
     setPressed(pickup, false);
     updateCustomerFieldsVisibility();
@@ -213,7 +244,10 @@ async function boot() {
 
   ["pp-customer-name", "pp-customer-phone", "pp-customer-address", "pp-pickup-note", "pp-payer-name"].forEach((id) => {
     const el = document.getElementById(id);
-    el.addEventListener("input", updatePlaceOrderState);
+    el.addEventListener("input", () => {
+      el.setCustomValidity("");
+      updatePlaceOrderState();
+    });
   });
 
   updateCustomerFieldsVisibility();

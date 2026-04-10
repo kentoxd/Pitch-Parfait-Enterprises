@@ -6,8 +6,19 @@ const PRODUCTS = "products";
 const CART = "cart";
 const ORDERS = "orders";
 
-function cartDocId(uid, productId) {
-  return `${uid}__${productId}`;
+function normalizeToppings(toppings) {
+  if (!Array.isArray(toppings)) return [];
+  return toppings.map((x) => String(x || "").trim()).filter(Boolean).sort();
+}
+
+function variantKey(productId, size = "small", toppings = []) {
+  const normalizedSize = String(size || "small").toLowerCase();
+  const normalizedToppings = normalizeToppings(toppings).join("|");
+  return `${String(productId || "")}::${normalizedSize}::${normalizedToppings}`;
+}
+
+function cartDocId(uid, productId, size = "small", toppings = []) {
+  return `${uid}__${variantKey(productId, size, toppings)}`;
 }
 
 export async function getProducts() {
@@ -46,14 +57,42 @@ export async function getCartLines() {
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
 }
 
-export async function setCartQty(productId, quantity, extra = {}) {
+export async function setCartLineQty(lineId, quantity) {
   const qty = Math.max(0, Math.min(99, Math.floor(Number(quantity) || 0)));
   if (!isFirebaseConfigured() || !db) return;
   await waitForAuthReady();
   const user = currentUser();
   if (!user) throw new Error("Login required");
-  const ref = firestore.doc(db, CART, cartDocId(user.uid, productId));
+  if (!lineId) return;
+  const ref = firestore.doc(db, CART, lineId);
   if (qty <= 0) {
+    await firestore.deleteDoc(ref);
+    return;
+  }
+  await firestore.setDoc(
+    ref,
+    {
+      quantity: qty,
+      updatedAt: firestore.serverTimestamp(),
+    },
+    { merge: true }
+  );
+}
+
+export async function addOrIncrementCartLine(productId, extra = {}, incrementBy = 1) {
+  const nextBy = Math.max(1, Math.floor(Number(incrementBy) || 1));
+  if (!isFirebaseConfigured() || !db) return;
+  await waitForAuthReady();
+  const user = currentUser();
+  if (!user) throw new Error("Login required");
+  const size = String(extra.size || "small").toLowerCase();
+  const toppings = normalizeToppings(extra.toppings || []);
+  const vKey = variantKey(productId, size, toppings);
+  const ref = firestore.doc(db, CART, cartDocId(user.uid, productId, size, toppings));
+  const snap = await firestore.getDoc(ref);
+  const currentQty = snap.exists() ? (Number(snap.data()?.quantity) || 0) : 0;
+  const quantity = Math.max(0, Math.min(99, currentQty + nextBy));
+  if (quantity <= 0) {
     await firestore.deleteDoc(ref);
     return;
   }
@@ -62,9 +101,12 @@ export async function setCartQty(productId, quantity, extra = {}) {
     {
       userId: user.uid,
       productId,
-      quantity: qty,
+      variantKey: vKey,
+      size,
+      toppings,
+      unitPrice: Number(extra.unitPrice || 0),
+      quantity,
       updatedAt: firestore.serverTimestamp(),
-      ...extra,
     },
     { merge: true }
   );

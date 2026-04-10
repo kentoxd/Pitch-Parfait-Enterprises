@@ -1,38 +1,7 @@
 import { currentUser, getCurrentUserProfile, requireAuthOrRedirect } from "./auth.js";
 import { listOrdersForCurrentUser } from "./store.js";
 import { escapeHtml, money } from "./ui.js";
-
-function normalizeOrderStatus(rawStatus) {
-  const status = String(rawStatus || "").toLowerCase().replaceAll(/\s+/g, "");
-  if (status.includes("cancel")) return "cancelled";
-  if (status === "finished" || status === "completed") return "finished";
-  if (status === "readyforpickup") return "readyForPickup";
-  if (status === "delivered") return "delivered";
-  if (status === "shipped" || status === "outfordelivery") return "shipped";
-  if (status === "processing" || status === "paid" || status === "preparing") {
-    return "processing";
-  }
-  return "pending";
-}
-
-function statusMeta(rawStatus) {
-  const normalized = normalizeOrderStatus(rawStatus);
-  const byStatus = {
-    pending: { label: "Pending", className: "pp-status--pending" },
-    processing: { label: "Processing", className: "pp-status--processing" },
-    readyForPickup: { label: "Ready for Pickup", className: "pp-status--processing" },
-    shipped: { label: "Shipped", className: "pp-status--shipped" },
-    delivered: { label: "Delivered", className: "pp-status--delivered" },
-    finished: { label: "Finished", className: "pp-status--finished" },
-    cancelled: { label: "Cancelled", className: "pp-status--cancelled" },
-  };
-  return byStatus[normalized];
-}
-
-function statusBadge(rawStatus) {
-  const meta = statusMeta(rawStatus);
-  return `<span class="pp-status-pill ${meta.className}">${meta.label}</span>`;
-}
+import { getOrderMethod, orderMethodLabel, statusBadgeHtml } from "./orderStatus.js";
 
 function formatDate(value) {
   if (!value) return "-";
@@ -70,7 +39,7 @@ function renderOrders(orders) {
             })
             .join("")
         : "<li>No items found.</li>";
-      const orderMethod = String(o.orderMethod || o.deliveryMethod || "-");
+      const orderMethod = getOrderMethod(o);
       return `
         <tr>
           <td><code>${escapeHtml(o.id || "-")}</code></td>
@@ -78,13 +47,13 @@ function renderOrders(orders) {
           <td>
             <details>
               <summary class="small">${itemCount} item(s) - View details</summary>
-              <div class="small mt-2">Order Method: <span class="fw-semibold text-capitalize">${escapeHtml(orderMethod)}</span></div>
+              <div class="small mt-2">Order Method: <span class="fw-semibold text-capitalize">${escapeHtml(orderMethodLabel(orderMethod))}</span></div>
               <div class="small">Payer Name: <span class="fw-semibold">${escapeHtml(o.payerName || "-")}</span></div>
               <ul class="mb-0 mt-2 small">${details}</ul>
             </details>
           </td>
           <td>${money(o.totalAmount || 0)}</td>
-          <td>${statusBadge(o.status)}</td>
+          <td>${statusBadgeHtml(o.status)}</td>
         </tr>
       `;
     })

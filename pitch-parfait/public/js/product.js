@@ -1,4 +1,4 @@
-import { getProducts, getCartLines, setCartQty } from "./store.js";
+import { addOrIncrementCartLine, getProducts } from "./store.js";
 import { money, showToast, escapeHtml } from "./ui.js";
 import { isFirebaseConfigured } from "../lib/firebase.js";
 import { requireAuthOrRedirect } from "./auth.js";
@@ -99,12 +99,10 @@ async function boot() {
     if (!(await requireAuthOrRedirect(window.location.pathname + window.location.search))) return;
     try {
       const selection = getSelection();
-      const lines = await getCartLines();
-      const line = lines.find((l) => l.productId === product.id);
-      await setCartQty(product.id, (Number(line?.quantity) || 0) + 1, {
+      await addOrIncrementCartLine(product.id, {
         unitPrice: selection.unitPrice,
-        size: selection.selectedSize,
-        toppings: selection.selectedToppings,
+        size: selection.selectedSize || "small",
+        toppings: selection.selectedToppings || [],
       });
       showToast("Added to cart!", "success");
     } catch (error) {
