@@ -4,7 +4,7 @@ export const demoProducts = [
     name: "Mango Sunset Parfait",
     category: "Parfait",
     price: 149,
-    image: "../assets/parfait/Mango Strawberry Parfait.png",
+    image: "../assets/revised/10.png",
     description: "Bright mango, coconut cream, and toasted flakes."
   },
   {
@@ -12,7 +12,7 @@ export const demoProducts = [
     name: "Berry Parfait",
     category: "Parfait",
     price: 149,
-    image: "../assets/parfait/Berry Parfait.png",
+    image: "../assets/revised/12.png",
     description: "Bright mango, coconut cream, and toasted flakes."
   },
   {
@@ -20,7 +20,7 @@ export const demoProducts = [
     name: "Nutty Chocolate Candy Parfait",
     category: "Parfait",
     price: 149,
-    image: "../assets/parfait/Nutty-Chocolate-Candy Parfait.png",
+    image: "../assets/revised/11.png",
     description: "Bright mango, coconut cream, and toasted flakes."
   },
   {
@@ -28,7 +28,7 @@ export const demoProducts = [
     name: "Oreo Mudpie Parfait",
     category: "Parfait",
     price: 149,
-    image: "../assets/parfait/Oreo-Mudpie Parfait.png",
+    image: "../assets/revised/8.png",
     description: "Bright mango, coconut cream, and toasted flakes."
   },
   {
@@ -36,7 +36,7 @@ export const demoProducts = [
     name: "Purple Dream Parfait",
     category: "Parfait",
     price: 149,
-    image: "../assets/parfait/Purple-Dream Parfait.png",
+    image: "../assets/revised/9.png",
     description: "Bright mango, coconut cream, and toasted flakes."
   },
   {
@@ -44,7 +44,7 @@ export const demoProducts = [
     name: "Berry Choco Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/berry-choco.png",
+    image: "../assets/revised/13.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -52,7 +52,7 @@ export const demoProducts = [
     name: "Chocolate Chip Dough Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/chocolate-chip-cookie-dough-swirls.png",
+    image: "../assets/revised/14.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -60,7 +60,7 @@ export const demoProducts = [
     name: "French Silk Pie Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/french-silk-pie.png",
+    image: "../assets/revised/15.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -68,7 +68,7 @@ export const demoProducts = [
     name: "Mint Oreo Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/Mint-Oreo-Swirls.png",
+    image: "../assets/revised/16.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -76,7 +76,7 @@ export const demoProducts = [
     name: "Royal New York Cheesecake Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/Royal-New-York-Cheesecake-Swirls.png",
+    image: "../assets/revised/17.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -84,7 +84,7 @@ export const demoProducts = [
     name: "Royal Oreo Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/Royal-Oreo-Swirls.png",
+    image: "../assets/revised/13.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -92,7 +92,7 @@ export const demoProducts = [
     name: "Royal Reese's Brownie Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/Royal-Reese's-Brownie-Swirls.png",
+    image: "../assets/revised/14.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -100,7 +100,7 @@ export const demoProducts = [
     name: "Royal Ultimate Choco Brownie Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/Royal-Ultimate-Choco-Brownie-Swirls.png",
+    image: "../assets/revised/13.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -108,7 +108,7 @@ export const demoProducts = [
     name: "Turtle Pecan Swirl",
     category: "Swirls",
     price: 129,
-    image: "../assets/swirls/Turtle-Pecan-Swirls.png",
+    image: "../assets/revised/14.png",
     description: "Frozen yogurt swirl with mixed berry ribbon."
   },
   {
@@ -116,7 +116,7 @@ export const demoProducts = [
     name: "Caramel Moolatte Shake",
     category: "Shakes",
     price: 169,
-    image: "../assets/milks/caramel-moolatte-milkshake.png",
+    image: "../assets/revised/19.png",
     description: "Classic vanilla shake topped with whipped cream."
   },
   {
@@ -124,7 +124,7 @@ export const demoProducts = [
     name: "Frozen Hot Chocolate Shake",
     category: "Shakes",
     price: 169,
-    image: "../assets/milks/frozen_hot_chocolate_milkshake.png",
+    image: "../assets/revised/18.png",
     description: "Classic vanilla shake topped with whipped cream."
   },
   {
@@ -132,7 +132,7 @@ export const demoProducts = [
     name: "Hot Fudge Shake",
     category: "Shakes",
     price: 169,
-    image: "../assets/milks/hot-fudge-milkshake.png",
+    image: "../assets/revised/22.png",
     description: "Classic vanilla shake topped with whipped cream."
   },
   {
@@ -140,7 +140,7 @@ export const demoProducts = [
     name: "Mocha Moolatte Shake",
     category: "Shakes",
     price: 169,
-    image: "../assets/milks/mocha-moolatte-milkshake.png",
+    image: "../assets/revised/21.png",
     description: "Classic vanilla shake topped with whipped cream."
   },
   {
@@ -148,7 +148,7 @@ export const demoProducts = [
     name: "Strawberry Shake",
     category: "Shakes",
     price: 169,
-    image: "../assets/milks/strawberry-milkshake.png",
+    image: "../assets/revised/20.png",
     description: "Classic vanilla shake topped with whipped cream."
   },
   {
@@ -156,7 +156,7 @@ export const demoProducts = [
     name: "Chocolate Extreme Cake",
     category: "Cakes",
     price: 199,
-    image: "../assets/cake/DQ-Blizzard-Ice-Cream-Cake-Chocolate-Extreme.png",
+    image: "../assets/revised/2.png",
     description: "Soft red velvet with silky cream cheese frosting."
   },
   {
@@ -164,7 +164,7 @@ export const demoProducts = [
     name: "Chocolate Kitkat Cake",
     category: "Cakes",
     price: 199,
-    image: "../assets/cake/DQ-Blizzard-Ice-Cream-Cake-Chocolate-Kitkat.png",
+    image: "../assets/revised/4.png",
     description: "Soft red velvet with silky cream cheese frosting."
   },
   {
@@ -172,7 +172,7 @@ export const demoProducts = [
     name: "Choco Shavings Cake",
     category: "Cakes",
     price: 199,
-    image: "../assets/cake/DQ-Ice-Cream-Choco-Shavings.png",
+    image: "../assets/revised/3.png",
     description: "Soft red velvet with silky cream cheese frosting."
   },
   {
@@ -180,7 +180,7 @@ export const demoProducts = [
     name: "Purple Fudge Cheesecake",
     category: "Cakes",
     price: 199,
-    image: "../assets/cake/WEB_Purple-Fudge-Cheesecake-8-04-1024x1024.png",
+    image: "../assets/revised/1.png",
     description: "Soft red velvet with silky cream cheese frosting."
   },
   {
@@ -188,7 +188,7 @@ export const demoProducts = [
     name: "Choco Oreo Cake",
     category: "Cakes",
     price: 199,
-    image: "../assets/tincake/Tin-Cakes-Choco-Oreo.png",
+    image: "../assets/revised/5.png",
     description: "Soft red velvet with silky cream cheese frosting."
   },
   {
@@ -196,7 +196,7 @@ export const demoProducts = [
     name: "Mango Cheesecake",
     category: "Cakes",
     price: 199,
-    image: "../assets/tincake/Tin-Cakes-Mango-Cheesecake.png",
+    image: "../assets/revised/6.png",
     description: "Soft red velvet with silky cream cheese frosting."
   },
   {
@@ -204,7 +204,7 @@ export const demoProducts = [
     name: "Strawberry Cashew Cheesecake",
     category: "Cakes",
     price: 199,
-    image: "../assets/tincake/Tin-Cakes-Strawberry-Cashew-Cheesecake.png",
+    image: "../assets/revised/7.png",
     description: "Soft red velvet with silky cream cheese frosting."
   },
 ];
