@@ -11,6 +11,34 @@ function normalizeToppings(toppings) {
   return toppings.map((x) => String(x || "").trim()).filter(Boolean).sort();
 }
 
+const USERS = "users";
+
+export async function getUsers(limitCount = 100) {
+  if (!isFirebaseConfigured() || !db) return [];
+  await waitForAuthReady();
+
+  const q = firestore.query(
+    firestore.collection(db, USERS),
+    firestore.limit(limitCount)
+  );
+
+  const snap = await firestore.getDocs(q);
+
+  return snap.docs.map((d) => ({
+    id: d.id,
+    ...d.data()
+  }));
+}
+
+export async function deleteUser(userId) {
+  if (!isFirebaseConfigured() || !db) return;
+  await waitForAuthReady();
+
+  await firestore.deleteDoc(
+    firestore.doc(db, "users", userId)
+  );
+}
+
 function variantKey(productId, size = "small", toppings = []) {
   const normalizedSize = String(size || "small").toLowerCase();
   const normalizedToppings = normalizeToppings(toppings).join("|");
@@ -175,13 +203,24 @@ export async function deleteProduct(productId) {
 export async function listOrders(limitCount = 100) {
   if (!isFirebaseConfigured() || !db) return [];
   await waitForAuthReady();
+
   const q = firestore.query(
     firestore.collection(db, ORDERS),
     firestore.orderBy("createdAt", "desc"),
     firestore.limit(limitCount)
   );
+
   const snap = await firestore.getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  return snap.docs.map((d) => {
+    const data = d.data();
+
+    return {
+      id: d.id,
+      ...data,
+      createdAt: data.createdAt || new Date().toISOString()
+    };
+  });
 }
 
 function toMillis(value) {
@@ -190,6 +229,56 @@ function toMillis(value) {
   if (typeof value?.seconds === "number") return value.seconds * 1000;
   const t = new Date(value).getTime();
   return Number.isFinite(t) ? t : 0;
+}
+
+export async function restoreDefaultProducts() {
+  if (!isFirebaseConfigured() || !db) {
+    throw new Error("Firebase not configured");
+  }
+
+  await waitForAuthReady();
+
+  // Get all current products
+  const snap = await firestore.getDocs(firestore.collection(db, PRODUCTS));
+
+  // Delete all existing products
+  const deletes = snap.docs.map((doc) =>
+    firestore.deleteDoc(firestore.doc(db, PRODUCTS, doc.id))
+  );
+  await Promise.all(deletes);
+
+  // Re-add demo products
+  const writes = demoProducts.map((p) =>
+    firestore.setDoc(firestore.doc(db, PRODUCTS, p.id), {
+      name: p.name,
+      category: p.category,
+      price: p.price,
+      image: p.image,
+      description: p.description,
+      inStock: p.inStock ?? true,
+      createdAt: firestore.serverTimestamp(),
+    })
+  );
+
+  await Promise.all(writes);
+}
+
+export async function updateUser(userId, patch) {
+  if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
+  await waitForAuthReady();
+
+  if (!userId) throw new Error("Missing userId");
+
+  const ref = firestore.doc(db, "users", userId);
+
+  await firestore.setDoc(
+    ref,
+    {
+      ...patch,
+      updatedAt: firestore.serverTimestamp(),
+    },
+    { merge: true }
+  );
 }
 
 export async function listOrdersForCurrentUser(limitCount = 100) {

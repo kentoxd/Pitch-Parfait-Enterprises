@@ -2,7 +2,9 @@ import { deleteProduct, getProducts, listOrders, updateOrder, upsertProduct } fr
 import { currentUser, isAdminUser, requireAuthOrRedirect } from "./auth.js";
 import { money, showToast, escapeHtml } from "./ui.js";
 import { getOrderMethod, normalizeOrderStatus, orderMethodLabel, statusBadgeHtml, statusOptionsForMethod } from "./orderStatus.js";
-
+import { restoreDefaultProducts } from "./store.js";
+import { getUsers, updateUser, deleteUser } from "./store.js";
+let users = [];
 let products = [];
 let orders = [];
 let selectedOrderId = null;
@@ -19,6 +21,29 @@ function renderStatusSelect(order) {
   const normalized = normalizeOrderStatus(order.status);
   const allowed = new Set(options.map((opt) => opt.value));
   select.value = allowed.has(normalized) ? normalized : "pending";
+}
+
+async function loadNavbarFooter() {
+  const navbarEl = document.getElementById("pp-navbar");
+  const footerEl = document.getElementById("pp-footer");
+
+  if (navbarEl) {
+    try {
+      const res = await fetch("../partials/navbar.html");
+      navbarEl.innerHTML = await res.text();
+    } catch (e) {
+      console.error("Navbar failed to load", e);
+    }
+  }
+
+  if (footerEl) {
+    try {
+      const res = await fetch("../partials/footer.html");
+      footerEl.innerHTML = await res.text();
+    } catch (e) {
+      console.error("Footer failed to load", e);
+    }
+  }
 }
 
 function setImagePreview(src) {
@@ -42,6 +67,80 @@ function readFileAsDataUrl(file) {
   });
 }
 
+async function loadUsers() {
+  users = await getUsers(100);
+
+  const body = document.getElementById("pp-users-body");
+
+  body.innerHTML = users.length
+    ? users
+        .map(
+          (u) => `
+        <tr>
+          <td>${escapeHtml(u.name || u.displayName || "-")}</td>
+          <td>${escapeHtml(u.email || "-")}</td>
+
+          <td>
+            <select class="form-select form-select-sm" data-role="${u.id}">
+              <option value="user" ${u.role === "user" ? "selected" : ""}>user</option>
+              <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
+            </select>
+          </td>
+
+          <td>${formatDate(u.createdAt)}</td>
+          <td>
+  <button class="btn btn-sm btn-outline-danger" data-delete-user="${u.id}">
+    Delete
+  </button>
+</td>
+          <td class="text-end">
+            <button class="btn btn-sm pp-btn-secondary" data-save-user="${u.id}">
+              Save
+            </button>
+          </td>
+        </tr>
+      `
+        )
+        .join("")
+    : `<tr><td colspan="5" class="pp-muted">No users found.</td></tr>`;
+
+  body.querySelectorAll("[data-save-user]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const userId = btn.getAttribute("data-save-user");
+      const select = body.querySelector(`[data-role="${userId}"]`);
+      const role = select?.value;
+
+      if (!userId || !role) return;
+
+      try {
+        btn.disabled = true;
+
+        await updateUser(userId, { role });
+
+        showToast("User updated successfully.", "success");
+
+        await loadUsers();
+      } catch (err) {
+        showToast(err?.message || "Failed to update user.", "danger");
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-delete-user]");
+    if (!btn) return;
+  
+    const userId = btn.getAttribute("data-delete-user");
+  
+    const confirmDelete = confirm("Are you sure you want to delete this user?");
+    if (!confirmDelete) return;
+  
+    await deleteUser(userId);
+    await loadUsers();
+  });
+}
+
 function resetForm() {
   document.getElementById("pp-product-id").value = "";
   document.getElementById("pp-name").value = "";
@@ -51,6 +150,31 @@ function resetForm() {
   document.getElementById("pp-description").value = "";
   selectedImageBase64 = "";
   setImagePreview("");
+}
+
+function renderOverviewOrders() {
+  const body = document.getElementById("pp-overview-orders-body");
+  if (!body) return;
+
+  const recent = [...orders]
+    .sort((a, b) => {
+      const ta = a.createdAt?.seconds || new Date(a.createdAt).getTime() || 0;
+      const tb = b.createdAt?.seconds || new Date(b.createdAt).getTime() || 0;
+      return tb - ta;
+    })
+    .slice(0, 5);
+
+  body.innerHTML = recent.length
+    ? recent.map(o => `
+      <tr>
+        <td><code>${escapeHtml(o.id)}</code></td>
+        <td>${escapeHtml(o.userEmail || o.userId || "-")}</td>
+        <td>${escapeHtml(formatDate(o.createdAt))}</td>
+        <td>${money(o.totalAmount || 0)}</td>
+        <td>${statusBadgeHtml(o.status)}</td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="5" class="pp-muted">No recent orders.</td></tr>`;
 }
 
 function renderProductsTable() {
@@ -274,7 +398,33 @@ async function saveSelectedOrderStatus() {
   }
 }
 
+function renderOverviewStats() {
+  document.getElementById("pp-stat-total-orders").textContent = orders.length;
+
+  const revenue = orders.reduce(
+    (sum, o) => sum + (Number(o.totalAmount) || 0),
+    0
+  );
+
+  document.getElementById("pp-stat-revenue").textContent = money(revenue);
+
+  const pending = orders.filter(
+    (o) => normalizeOrderStatus(o.status) === "pending"
+  ).length;
+
+  document.getElementById("pp-stat-pending").textContent = pending;
+
+  document.getElementById("pp-stat-products").textContent = products.length;
+}
 async function boot() {
+  console.log("loading navbar/footer...");
+  console.log("BOOT START");
+
+  console.time("auth-ready");
+await requireAuthOrRedirect(window.location.pathname);
+console.timeEnd("auth-ready");
+
+
   if (!(await requireAuthOrRedirect(window.location.pathname))) return;
   const denied = document.getElementById("pp-admin-denied");
   const content = document.getElementById("pp-admin-content");
@@ -295,6 +445,18 @@ async function boot() {
       setImagePreview(selectedImageBase64);
     } catch (error) {
       showToast(error?.message || "Could not preview selected image.", "danger");
+    }
+  });
+
+  document.getElementById("pp-restore-defaults")?.addEventListener("click", async () => {
+    if (!confirm("This will reset all products to default items. Continue?")) return;
+  
+    try {
+      await restoreDefaultProducts();
+      showToast("Default items restored.", "success");
+      await loadProducts();
+    } catch (e) {
+      showToast(e?.message || "Failed to restore defaults.", "danger");
     }
   });
 
@@ -334,8 +496,14 @@ async function boot() {
     await saveSelectedOrderStatus();
   });
 
-  await loadProducts();
-  await loadOrders();
+  await Promise.all([
+    loadProducts(),
+    loadOrders(),
+    loadUsers()
+  ]);
+  
+  renderOverviewStats();
+  renderOverviewOrders();
 }
 
 boot();
