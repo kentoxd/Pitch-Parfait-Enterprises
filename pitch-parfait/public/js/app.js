@@ -1,6 +1,6 @@
 import { injectChrome } from "./components.js";
 import { getCartLines } from "./store.js";
-import { isAdminUser, isLoggedIn, loginHref, logout, onAuthChange } from "./auth.js";
+import { isAdminUser, isLoggedIn, loginHref, logout, onAuthChange, waitForAuthReady } from "./auth.js";
 
 function getPrefix() {
   return window.location.pathname.includes("/pages/") ? "../" : "./";
@@ -56,6 +56,7 @@ function applyRouteLinks(prefix) {
 
 async function updateCartCount() {
   try {
+    await waitForAuthReady();
     const lines = await getCartLines();
     const count = lines.reduce((sum, l) => sum + (Number(l.quantity) || 0), 0);
     const el = document.getElementById("pp-cart-count");
@@ -124,6 +125,10 @@ async function boot() {
   await applyAuthState();
   onAuthChange(() => {
     applyAuthState();
+    updateCartCount();
+  });
+  window.addEventListener("pp:cart-updated", () => {
+    updateCartCount();
   });
   const year = document.getElementById("pp-year");
   if (year) year.textContent = String(new Date().getFullYear());

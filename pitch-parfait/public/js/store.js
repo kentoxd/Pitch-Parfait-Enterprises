@@ -49,6 +49,37 @@ function cartDocId(uid, productId, size = "small", toppings = []) {
   return `${uid}__${variantKey(productId, size, toppings)}`;
 }
 
+function localCartKey(uid = "guest") {
+  return `pp_cart_${uid}`;
+}
+
+function readLocalCart(uid = "guest") {
+  try {
+    const raw = localStorage.getItem(localCartKey(uid));
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function writeLocalCart(uid = "guest", lines = []) {
+  try {
+    localStorage.setItem(localCartKey(uid), JSON.stringify(lines));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getActiveCartUid() {
+  return currentUser()?.uid || "guest";
+}
+
+function notifyCartUpdated() {
+  window.dispatchEvent(new CustomEvent("pp:cart-updated"));
+}
+
 export async function getProducts() {
   if (!isFirebaseConfigured() || !db) return demoProducts;
   try {
@@ -76,74 +107,187 @@ export async function seedDemoProducts() {
 }
 
 export async function getCartLines() {
-  if (!isFirebaseConfigured() || !db) return [];
+  const uid = getActiveCartUid();
+  const localLines = readLocalCart(uid);
+  if (!isFirebaseConfigured() || !db) return localLines;
   await waitForAuthReady();
   const user = currentUser();
-  if (!user) return [];
-  const q = firestore.query(firestore.collection(db, CART), firestore.where("userId", "==", user.uid));
-  const snap = await firestore.getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  if (!user) return localLines;
+  try {
+    const q = firestore.query(firestore.collection(db, CART), firestore.where("userId", "==", user.uid));
+    const snap = await firestore.getDocs(q);
+    const remoteLines = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    if (!localLines.length) return remoteLines;
+    if (!remoteLines.length) return localLines;
+    const merged = new Map(remoteLines.map((line) => [line.id, line]));
+    localLines.forEach((line) => {
+      if (!merged.has(line.id)) merged.set(line.id, line);
+    });
+    return [...merged.values()];
+  } catch (error) {
+    console.warn("Falling back to local cart read.", error);
+    return localLines;
+  }
 }
 
 export async function setCartLineQty(lineId, quantity) {
   const qty = Math.max(0, Math.min(99, Math.floor(Number(quantity) || 0)));
-  if (!isFirebaseConfigured() || !db) return;
+  const uid = getActiveCartUid();
+  if (!lineId) return;
+  if (!isFirebaseConfigured() || !db) {
+    const lines = readLocalCart(uid);
+    const nextLines = qty <= 0
+      ? lines.filter((l) => l.id !== lineId)
+      : lines.map((l) => (l.id === lineId ? { ...l, quantity: qty } : l));
+    writeLocalCart(uid, nextLines);
+    notifyCartUpdated();
+    return;
+  }
   await waitForAuthReady();
   const user = currentUser();
   if (!user) throw new Error("Login required");
-  if (!lineId) return;
   const ref = firestore.doc(db, CART, lineId);
-  if (qty <= 0) {
-    await firestore.deleteDoc(ref);
-    return;
+  try {
+    if (qty <= 0) {
+      await firestore.deleteDoc(ref);
+      return;
+    }
+    await firestore.setDoc(
+      ref,
+      {
+        quantity: qty,
+        updatedAt: firestore.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    notifyCartUpdated();
+  } catch (error) {
+    console.warn("Falling back to local cart update.", error);
+    const lines = readLocalCart(uid);
+    const nextLines = qty <= 0
+      ? lines.filter((l) => l.id !== lineId)
+      : lines.map((l) => (l.id === lineId ? { ...l, quantity: qty } : l));
+    writeLocalCart(uid, nextLines);
+    notifyCartUpdated();
   }
-  await firestore.setDoc(
-    ref,
-    {
-      quantity: qty,
-      updatedAt: firestore.serverTimestamp(),
-    },
-    { merge: true }
-  );
 }
 
 export async function addOrIncrementCartLine(productId, extra = {}, incrementBy = 1) {
   const nextBy = Math.max(1, Math.floor(Number(incrementBy) || 1));
-  if (!isFirebaseConfigured() || !db) return;
-  await waitForAuthReady();
-  const user = currentUser();
-  if (!user) throw new Error("Login required");
+  const uid = getActiveCartUid();
   const size = String(extra.size || "small").toLowerCase();
   const toppings = normalizeToppings(extra.toppings || []);
   const vKey = variantKey(productId, size, toppings);
-  const ref = firestore.doc(db, CART, cartDocId(user.uid, productId, size, toppings));
-  const snap = await firestore.getDoc(ref);
-  const currentQty = snap.exists() ? (Number(snap.data()?.quantity) || 0) : 0;
-  const quantity = Math.max(0, Math.min(99, currentQty + nextBy));
-  if (quantity <= 0) {
-    await firestore.deleteDoc(ref);
-    return;
-  }
-  await firestore.setDoc(
-    ref,
-    {
-      userId: user.uid,
+  if (!isFirebaseConfigured() || !db) {
+    const lines = readLocalCart(uid);
+    const localId = cartDocId(uid, productId, size, toppings);
+    const existing = lines.find((l) => l.id === localId);
+    const currentQty = Number(existing?.quantity) || 0;
+    const quantity = Math.max(0, Math.min(99, currentQty + nextBy));
+    if (quantity <= 0) {
+      writeLocalCart(uid, lines.filter((l) => l.id !== localId));
+      notifyCartUpdated();
+      return;
+    }
+    const payload = {
+      id: localId,
+      userId: uid,
       productId,
       variantKey: vKey,
       size,
       toppings,
       unitPrice: Number(extra.unitPrice || 0),
       quantity,
-      updatedAt: firestore.serverTimestamp(),
-    },
-    { merge: true }
-  );
+      updatedAt: new Date().toISOString(),
+    };
+    if (existing) {
+      writeLocalCart(uid, lines.map((l) => (l.id === localId ? { ...l, ...payload } : l)));
+    } else {
+      writeLocalCart(uid, [...lines, payload]);
+    }
+    notifyCartUpdated();
+    return;
+  }
+  await waitForAuthReady();
+  const user = currentUser();
+  if (!user) throw new Error("Login required");
+  try {
+    const ref = firestore.doc(db, CART, cartDocId(user.uid, productId, size, toppings));
+    const snap = await firestore.getDoc(ref);
+    const currentQty = snap.exists() ? (Number(snap.data()?.quantity) || 0) : 0;
+    const quantity = Math.max(0, Math.min(99, currentQty + nextBy));
+    if (quantity <= 0) {
+      await firestore.deleteDoc(ref);
+      return;
+    }
+    await firestore.setDoc(
+      ref,
+      {
+        userId: user.uid,
+        productId,
+        variantKey: vKey,
+        size,
+        toppings,
+        unitPrice: Number(extra.unitPrice || 0),
+        quantity,
+        updatedAt: firestore.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    notifyCartUpdated();
+  } catch (error) {
+    console.warn("Falling back to local cart add.", error);
+    const lines = readLocalCart(uid);
+    const localId = cartDocId(uid, productId, size, toppings);
+    const existing = lines.find((l) => l.id === localId);
+    const currentQty = Number(existing?.quantity) || 0;
+    const quantity = Math.max(0, Math.min(99, currentQty + nextBy));
+    if (quantity <= 0) {
+      if (!writeLocalCart(uid, lines.filter((l) => l.id !== localId))) {
+        throw new Error("Local cart storage unavailable");
+      }
+      notifyCartUpdated();
+      return;
+    }
+    const payload = {
+      id: localId,
+      userId: uid,
+      productId,
+      variantKey: vKey,
+      size,
+      toppings,
+      unitPrice: Number(extra.unitPrice || 0),
+      quantity,
+      updatedAt: new Date().toISOString(),
+    };
+    if (existing) {
+      if (!writeLocalCart(uid, lines.map((l) => (l.id === localId ? { ...l, ...payload } : l)))) {
+        throw new Error("Local cart storage unavailable");
+      }
+    } else {
+      if (!writeLocalCart(uid, [...lines, payload])) {
+        throw new Error("Local cart storage unavailable");
+      }
+    }
+    notifyCartUpdated();
+  }
 }
 
 export async function clearCart() {
-  if (!isFirebaseConfigured() || !db) return;
+  const uid = getActiveCartUid();
+  if (!isFirebaseConfigured() || !db) {
+    writeLocalCart(uid, []);
+    notifyCartUpdated();
+    return;
+  }
   const lines = await getCartLines();
-  await Promise.all(lines.map((l) => firestore.deleteDoc(firestore.doc(db, CART, l.id))));
+  try {
+    await Promise.all(lines.map((l) => firestore.deleteDoc(firestore.doc(db, CART, l.id))));
+  } catch (error) {
+    console.warn("Falling back to local cart clear.", error);
+    writeLocalCart(uid, []);
+  }
+  notifyCartUpdated();
 }
 
 export async function createOrder(order) {
