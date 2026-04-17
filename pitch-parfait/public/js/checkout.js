@@ -1,7 +1,7 @@
 import { isFirebaseConfigured } from "../lib/firebase.js";
 import { getProducts, getCartLines, createOrder } from "./store.js";
 import { escapeHtml, money, setPressed, showToast } from "./ui.js";
-import { requireAuthOrRedirect } from "./auth.js";
+import { canAccessRole, getCurrentUserRole, requireAuthOrRedirect } from "./auth.js";
 import { normalizeOrderMethod } from "./orderStatus.js";
 
 let orderMethod = null; // "pickup" | "delivery"
@@ -206,13 +206,19 @@ async function placeOrder(totalAmount) {
   try {
     const orderId = await createOrder(order);
     window.location.href = `./payment.html?orderId=${encodeURIComponent(orderId)}`;
-  } catch {
-    showToast("Unable to place order. Check Firestore rules.", "danger");
+  } catch (error) {
+    showToast(error?.message || "Unable to place order. Check Firestore rules.", "danger");
   }
 }
 
 async function boot() {
   if (!(await requireAuthOrRedirect(window.location.pathname))) return;
+  const role = await getCurrentUserRole();
+  if (!canAccessRole(role, "customer")) {
+    showToast("Only customers can place orders.", "warning");
+    window.location.href = "./home.html";
+    return;
+  }
   products = await getProducts();
   cartLines = await getCartLines();
   if (!cartLines.length) {

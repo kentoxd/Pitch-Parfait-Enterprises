@@ -1,7 +1,7 @@
 import { addOrIncrementCartLine, getProducts } from "./store.js";
 import { money, showToast, escapeHtml } from "./ui.js";
 import { isFirebaseConfigured } from "../lib/firebase.js";
-import { requireAuthOrRedirect } from "./auth.js";
+import { canAccessRole, getCurrentUserRole, requireAuthOrRedirect } from "./auth.js";
 
 const sizeMap = [
   { key: "small", label: "Small", add: 0 },
@@ -88,15 +88,26 @@ async function boot() {
   document.getElementById("pp-product-name").textContent = product.name;
   document.getElementById("pp-product-base-price").textContent = money(product.price);
   document.getElementById("pp-product-desc").textContent = product.description || "";
+  const addButton = document.getElementById("pp-add-cart");
+  const stockQty = Number(product.stockQty ?? 0);
+  if (stockQty <= 0) {
+    addButton.disabled = true;
+    addButton.textContent = "Out of Stock";
+  }
 
   const getSelection = setupOptions(product);
 
-  document.getElementById("pp-add-cart").addEventListener("click", async () => {
+  addButton.addEventListener("click", async () => {
     if (!isFirebaseConfigured()) {
       showToast("Add Firebase config first to use cart.", "warning");
       return;
     }
     if (!(await requireAuthOrRedirect(window.location.pathname + window.location.search))) return;
+    const role = await getCurrentUserRole();
+    if (!canAccessRole(role, "customer")) {
+      showToast("Only customers can add to cart.", "warning");
+      return;
+    }
     try {
       const selection = getSelection();
       await addOrIncrementCartLine(product.id, {

@@ -1,10 +1,11 @@
 import { db, firestore, isFirebaseConfigured } from "../lib/firebase.js";
 import { demoProducts } from "./demoData.js";
-import { currentUser, waitForAuthReady } from "./auth.js";
+import { canAccessRole, currentUser, getCurrentUserRole, waitForAuthReady } from "./auth.js";
 
 const PRODUCTS = "products";
 const CART = "cart";
 const ORDERS = "orders";
+const INVENTORY_REQUESTS = "inventory_adjustment_requests";
 
 function normalizeToppings(toppings) {
   if (!Array.isArray(toppings)) return [];
@@ -81,14 +82,15 @@ function notifyCartUpdated() {
 }
 
 export async function getProducts() {
-  if (!isFirebaseConfigured() || !db) return demoProducts;
+  const withStock = (items = []) => items.map((item) => ({ ...item, stockQty: coerceStockQty(item.stockQty, 20) }));
+  if (!isFirebaseConfigured() || !db) return withStock(demoProducts);
   try {
     const snap = await firestore.getDocs(firestore.collection(db, PRODUCTS));
     const items = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    return items.length ? items : demoProducts;
+    return items.length ? withStock(items) : withStock(demoProducts);
   } catch (error) {
     console.error("Failed to fetch Firestore products. Falling back to demo data.", error);
-    return demoProducts;
+    return withStock(demoProducts);
   }
 }
 
@@ -100,10 +102,17 @@ export async function seedDemoProducts() {
       category: p.category,
       price: p.price,
       image: p.image,
-      description: p.description
+      description: p.description,
+      stockQty: Number(p.stockQty ?? 20),
     })
   );
   await Promise.all(writes);
+}
+
+function coerceStockQty(value, fallback = 0) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return Math.max(0, Math.floor(fallback));
+  return Math.max(0, Math.floor(parsed));
 }
 
 export async function getCartLines() {
@@ -295,10 +304,46 @@ export async function createOrder(order) {
   await waitForAuthReady();
   const user = currentUser();
   if (!user) throw new Error("Login required");
+  const items = Array.isArray(order?.items) ? order.items : [];
+  if (!items.length) throw new Error("Order has no items");
+
+  const productSnaps = await Promise.all(
+    items.map((item) => firestore.getDoc(firestore.doc(db, PRODUCTS, item.id)))
+  );
+  const stockByProductId = new Map();
+
+  productSnaps.forEach((snap, idx) => {
+    const item = items[idx];
+    if (!snap.exists()) throw new Error(`Product unavailable: ${item?.name || item?.id || "item"}`);
+    stockByProductId.set(item.id, coerceStockQty(snap.data()?.stockQty, 20));
+  });
+
+  items.forEach((item) => {
+    const requestedQty = coerceStockQty(item.quantity, 0);
+    const availableQty = coerceStockQty(stockByProductId.get(item.id), 0);
+    if (requestedQty <= 0) throw new Error(`Invalid quantity for ${item?.name || item?.id || "item"}`);
+    if (requestedQty > availableQty) {
+      throw new Error(`${item?.name || "Item"} is out of stock or has insufficient quantity.`);
+    }
+  });
+
+  const writes = items.map((item) => {
+    const requestedQty = coerceStockQty(item.quantity, 0);
+    const currentQty = coerceStockQty(stockByProductId.get(item.id), 0);
+    return firestore.updateDoc(firestore.doc(db, PRODUCTS, item.id), {
+      stockQty: Math.max(0, currentQty - requestedQty),
+      updatedAt: firestore.serverTimestamp(),
+    });
+  });
+  await Promise.all(writes);
+
   const ref = await firestore.addDoc(firestore.collection(db, ORDERS), {
     ...order,
     userId: user.uid,
     userEmail: user.email || "",
+    inventorySync: "synced",
+    inventorySyncNote: "",
+    stockRestoredOnCancel: false,
     createdAt: firestore.serverTimestamp()
   });
   return ref.id;
@@ -313,7 +358,51 @@ export async function getOrder(orderId) {
 
 export async function updateOrder(orderId, patch) {
   if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
-  await firestore.updateDoc(firestore.doc(db, ORDERS, orderId), patch);
+  const orderRef = firestore.doc(db, ORDERS, orderId);
+  const snap = await firestore.getDoc(orderRef);
+  if (!snap.exists()) throw new Error("Order not found");
+  const current = snap.data() || {};
+  const currentStatus = String(current.status || "").toLowerCase();
+  const nextStatus = String(patch?.status || current.status || "").toLowerCase();
+
+  const shouldRestoreStock =
+    nextStatus === "cancelled" &&
+    currentStatus !== "cancelled" &&
+    !Boolean(current.stockRestoredOnCancel);
+
+  if (shouldRestoreStock) {
+    const items = Array.isArray(current.items) ? current.items : [];
+    const productSnaps = await Promise.all(
+      items.map((item) => firestore.getDoc(firestore.doc(db, PRODUCTS, item.id)))
+    );
+    const stockByProductId = new Map();
+    productSnaps.forEach((productSnap, idx) => {
+      const item = items[idx];
+      if (!productSnap.exists()) return;
+      stockByProductId.set(item.id, coerceStockQty(productSnap.data()?.stockQty, 20));
+    });
+    const stockWrites = items.map((item) => {
+      const productId = item?.id;
+      if (!productId || !stockByProductId.has(productId)) return null;
+      const currentQty = coerceStockQty(stockByProductId.get(productId), 0);
+      const restoreQty = coerceStockQty(item.quantity, 0);
+      return firestore.updateDoc(firestore.doc(db, PRODUCTS, productId), {
+        stockQty: currentQty + restoreQty,
+        updatedAt: firestore.serverTimestamp(),
+      });
+    }).filter(Boolean);
+    await Promise.all(stockWrites);
+  }
+
+  await firestore.updateDoc(orderRef, {
+    ...patch,
+    ...(shouldRestoreStock
+      ? {
+          stockRestoredOnCancel: true,
+          stockRestoredAt: firestore.serverTimestamp(),
+        }
+      : {}),
+  });
 }
 
 export async function upsertProduct(product) {
@@ -325,6 +414,7 @@ export async function upsertProduct(product) {
     price: Number(product.price || 0),
     image: String(product.image || "").trim(),
     description: String(product.description || "").trim(),
+    stockQty: coerceStockQty(product.stockQty, 0),
     updatedAt: firestore.serverTimestamp(),
   };
   if (product.id) {
@@ -400,6 +490,7 @@ export async function restoreDefaultProducts() {
       image: p.image,
       description: p.description,
       inStock: p.inStock ?? true,
+      stockQty: Number(p.stockQty ?? 20),
       createdAt: firestore.serverTimestamp(),
     })
   );
@@ -423,6 +514,115 @@ export async function updateUser(userId, patch) {
     },
     { merge: true }
   );
+}
+
+export async function getInventorySnapshot() {
+  return getProducts();
+}
+
+export async function listInventoryAdjustmentRequests(limitCount = 100) {
+  if (!isFirebaseConfigured() || !db) return [];
+  await waitForAuthReady();
+  const q = firestore.query(
+    firestore.collection(db, INVENTORY_REQUESTS),
+    firestore.orderBy("createdAt", "desc"),
+    firestore.limit(limitCount)
+  );
+  const snap = await firestore.getDocs(q);
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+export async function submitInventoryAdjustmentRequest({ productId, adjustmentQty, reason }) {
+  if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
+  await waitForAuthReady();
+  const user = currentUser();
+  if (!user) throw new Error("Login required");
+  const role = await getCurrentUserRole();
+  if (!canAccessRole(role, "staff")) throw new Error("Staff access required");
+
+  const qty = Math.floor(Number(adjustmentQty) || 0);
+  if (!productId) throw new Error("Missing product");
+  if (!Number.isInteger(qty) || qty === 0) throw new Error("Adjustment must be a non-zero integer");
+  if (!String(reason || "").trim()) throw new Error("Reason is required");
+
+  const productSnap = await firestore.getDoc(firestore.doc(db, PRODUCTS, productId));
+  if (!productSnap.exists()) throw new Error("Product not found");
+
+  await firestore.addDoc(firestore.collection(db, INVENTORY_REQUESTS), {
+    productId,
+    productName: productSnap.data()?.name || "",
+    adjustmentQty: qty,
+    reason: String(reason || "").trim(),
+    status: "pending",
+    requestedBy: user.uid,
+    requestedByEmail: user.email || "",
+    requestedByRole: role,
+    createdAt: firestore.serverTimestamp(),
+    reviewedBy: "",
+    reviewedAt: null,
+    reviewNote: "",
+  });
+}
+
+export async function adjustInventoryDirect(productId, adjustmentQty, reason = "") {
+  if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
+  await waitForAuthReady();
+  const user = currentUser();
+  if (!user) throw new Error("Login required");
+  const role = await getCurrentUserRole();
+  if (!canAccessRole(role, "admin")) throw new Error("Admin access required");
+
+  const qty = Math.floor(Number(adjustmentQty) || 0);
+  if (!productId) throw new Error("Missing product");
+  if (!Number.isInteger(qty) || qty === 0) throw new Error("Adjustment must be a non-zero integer");
+
+  const ref = firestore.doc(db, PRODUCTS, productId);
+  const snap = await firestore.getDoc(ref);
+  if (!snap.exists()) throw new Error("Product not found");
+  const current = coerceStockQty(snap.data()?.stockQty, 0);
+  const next = current + qty;
+  if (next < 0) throw new Error("Adjustment exceeds available stock");
+
+  await firestore.updateDoc(ref, {
+    stockQty: next,
+    updatedAt: firestore.serverTimestamp(),
+    lastInventoryAdjustment: {
+      qty,
+      reason: String(reason || "").trim(),
+      by: user.uid,
+      byEmail: user.email || "",
+      at: new Date().toISOString(),
+    },
+  });
+}
+
+export async function reviewInventoryAdjustmentRequest(requestId, decision, note = "") {
+  if (!isFirebaseConfigured() || !db) throw new Error("Firebase not configured");
+  await waitForAuthReady();
+  const user = currentUser();
+  if (!user) throw new Error("Login required");
+  const role = await getCurrentUserRole();
+  if (!canAccessRole(role, "admin")) throw new Error("Admin access required");
+  const normalized = String(decision || "").toLowerCase();
+  if (!["approved", "rejected"].includes(normalized)) throw new Error("Invalid decision");
+
+  const reqRef = firestore.doc(db, INVENTORY_REQUESTS, requestId);
+  const reqSnap = await firestore.getDoc(reqRef);
+  if (!reqSnap.exists()) throw new Error("Request not found");
+  const req = reqSnap.data() || {};
+  if (String(req.status || "") !== "pending") throw new Error("Request already processed");
+
+  if (normalized === "approved") {
+    await adjustInventoryDirect(req.productId, Number(req.adjustmentQty) || 0, `Approved request: ${String(note || req.reason || "").trim()}`);
+  }
+
+  await firestore.updateDoc(reqRef, {
+    status: normalized,
+    reviewedBy: user.uid,
+    reviewedByEmail: user.email || "",
+    reviewedAt: firestore.serverTimestamp(),
+    reviewNote: String(note || "").trim(),
+  });
 }
 
 export async function listOrdersForCurrentUser(limitCount = 100) {

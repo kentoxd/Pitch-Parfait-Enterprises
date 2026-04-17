@@ -60,6 +60,33 @@ export async function login(email, password) {
 }
 
 export async function signup(email, password, fullName = "") {
+  return signupWithConsent(email, password, fullName, null);
+}
+
+const ROLE_RANK = {
+  guest: 0,
+  customer: 1,
+  staff: 2,
+  admin: 3,
+  super_admin: 4,
+};
+
+export const ROLES = Object.freeze(Object.keys(ROLE_RANK));
+
+export function normalizeRole(role) {
+  const value = String(role || "").trim().toLowerCase();
+  return ROLES.includes(value) ? value : "customer";
+}
+
+export function roleRank(role) {
+  return ROLE_RANK[normalizeRole(role)] ?? ROLE_RANK.customer;
+}
+
+export function canAccessRole(role, minimumRole) {
+  return roleRank(role) >= roleRank(minimumRole);
+}
+
+export async function signupWithConsent(email, password, fullName = "", consentMeta = null) {
   if (!auth) throw new Error("Firebase is not configured.");
   const cred = await firebaseAuth.createUserWithEmailAndPassword(auth, email, password);
   const cleanedName = String(fullName || "").trim();
@@ -71,6 +98,13 @@ export async function signup(email, password, fullName = "") {
     }
   }
   if (db) {
+    const normalizedConsent = consentMeta && typeof consentMeta === "object"
+      ? {
+          accepted: Boolean(consentMeta.accepted),
+          acceptedAt: consentMeta.acceptedAt || new Date().toISOString(),
+          version: String(consentMeta.version || "v1"),
+        }
+      : null;
     await firestore.setDoc(
       firestore.doc(db, "users", cred.user.uid),
       {
@@ -78,6 +112,7 @@ export async function signup(email, password, fullName = "") {
         name: cleanedName,
         displayName: cleanedName,
         role: "customer",
+        consent: normalizedConsent,
         createdAt: firestore.serverTimestamp(),
       },
       { merge: true }
@@ -93,16 +128,31 @@ export async function logout() {
 
 export async function getUserRole(uid) {
   if (!db || !uid) return "guest";
-  const snap = await firestore.getDoc(firestore.doc(db, "users", uid));
-  if (!snap.exists()) return "customer";
-  return snap.data()?.role || "customer";
+  try {
+    const snap = await firestore.getDoc(firestore.doc(db, "users", uid));
+    if (!snap.exists()) return "customer";
+    return normalizeRole(snap.data()?.role || "customer");
+  } catch (error) {
+    console.warn("Could not read user role; defaulting to customer.", error);
+    return "customer";
+  }
 }
 
 export async function isAdminUser() {
+  return hasMinimumRole("admin");
+}
+
+export async function hasMinimumRole(minimumRole) {
   const u = currentUser();
   if (!u) return false;
   const role = await getUserRole(u.uid);
-  return role === "admin";
+  return canAccessRole(role, minimumRole);
+}
+
+export async function getCurrentUserRole() {
+  const u = currentUser();
+  if (!u) return "guest";
+  return getUserRole(u.uid);
 }
 
 export async function getCurrentUserProfile() {
@@ -111,8 +161,12 @@ export async function getCurrentUserProfile() {
   const role = await getUserRole(u.uid);
   let profile = {};
   if (db) {
-    const snap = await firestore.getDoc(firestore.doc(db, "users", u.uid));
-    if (snap.exists()) profile = snap.data() || {};
+    try {
+      const snap = await firestore.getDoc(firestore.doc(db, "users", u.uid));
+      if (snap.exists()) profile = snap.data() || {};
+    } catch (error) {
+      console.warn("Could not read profile details from users document.", error);
+    }
   }
   return {
     uid: u.uid,

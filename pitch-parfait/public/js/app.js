@@ -1,6 +1,6 @@
 import { injectChrome } from "./components.js";
 import { getCartLines } from "./store.js";
-import { isAdminUser, isLoggedIn, loginHref, logout, onAuthChange, waitForAuthReady } from "./auth.js";
+import { getCurrentUserRole, isLoggedIn, loginHref, logout, onAuthChange, waitForAuthReady, canAccessRole } from "./auth.js";
 
 function getPrefix() {
   return window.location.pathname.includes("/pages/") ? "../" : "./";
@@ -88,12 +88,13 @@ async function boot() {
   }
   const applyAuthState = async () => {
     if (!authLink) return;
-    let userIsAdmin = false;
+    let userHasDashboardAccess = false;
     if (isLoggedIn()) {
       try {
-        userIsAdmin = await isAdminUser();
+        const role = await getCurrentUserRole();
+        userHasDashboardAccess = canAccessRole(role, "staff");
       } catch {
-        userIsAdmin = false;
+        userHasDashboardAccess = false;
       }
     }
     if (isLoggedIn()) {
@@ -115,7 +116,7 @@ async function boot() {
     }
     if (adminNavItem) {
       adminNavItem.classList.add("d-none");
-      if (isLoggedIn() && userIsAdmin) adminNavItem.classList.remove("d-none");
+      if (isLoggedIn() && userHasDashboardAccess) adminNavItem.classList.remove("d-none");
     }
     if (accountNavItem) {
       accountNavItem.classList.add("d-none");

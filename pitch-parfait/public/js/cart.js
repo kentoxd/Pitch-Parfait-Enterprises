@@ -1,7 +1,7 @@
 import { isFirebaseConfigured } from "../lib/firebase.js";
 import { getProducts, getCartLines, setCartLineQty, clearCart } from "./store.js";
 import { escapeHtml, money, showToast } from "./ui.js";
-import { requireAuthOrRedirect } from "./auth.js";
+import { canAccessRole, getCurrentUserRole, requireAuthOrRedirect } from "./auth.js";
 
 let products = [];
 
@@ -109,6 +109,12 @@ async function render() {
 
 async function boot() {
   if (!(await requireAuthOrRedirect(window.location.pathname))) return;
+  const role = await getCurrentUserRole();
+  if (!canAccessRole(role, "customer")) {
+    showToast("Only customers can use cart features.", "warning");
+    window.location.href = "./home.html";
+    return;
+  }
   const warn = document.getElementById("pp-cart-warning");
   if (!isFirebaseConfigured()) warn.classList.remove("d-none");
 

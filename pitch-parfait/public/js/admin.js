@@ -1,17 +1,51 @@
-import { deleteProduct, getProducts, listOrders, updateOrder, upsertProduct } from "./store.js";
-import { currentUser, isAdminUser, requireAuthOrRedirect } from "./auth.js";
-import { money, showToast, escapeHtml } from "./ui.js";
+import {
+  adjustInventoryDirect,
+  deleteProduct,
+  deleteUser,
+  getProducts,
+  getUsers,
+  listInventoryAdjustmentRequests,
+  listOrders,
+  reviewInventoryAdjustmentRequest,
+  submitInventoryAdjustmentRequest,
+  updateOrder,
+  updateUser,
+  upsertProduct
+} from "./store.js";
+import { canAccessRole, currentUser, getCurrentUserRole, requireAuthOrRedirect } from "./auth.js";
+import { escapeHtml, money, showToast } from "./ui.js";
 import { getOrderMethod, normalizeOrderStatus, orderMethodLabel, statusBadgeHtml, statusOptionsForMethod } from "./orderStatus.js";
 import { restoreDefaultProducts } from "./store.js";
-import { getUsers, updateUser, deleteUser } from "./store.js";
+
+const ROLE_OPTIONS = ["guest", "customer", "staff", "admin", "super_admin"];
 let users = [];
 let products = [];
 let orders = [];
+let requests = [];
 let selectedOrderId = null;
 let selectedImageBase64 = "";
 let productFilterCategory = "all";
 let productPage = 1;
+let currentRole = "guest";
 const PRODUCTS_PER_PAGE = 10;
+
+function hasRole(minRole) {
+  return canAccessRole(currentRole, minRole);
+}
+
+function canManageProducts() {
+  return hasRole("admin");
+}
+
+function canManageUsers() {
+  return hasRole("admin");
+}
+
+function canAssignRole(targetRole) {
+  if (currentRole === "super_admin") return true;
+  if (currentRole === "admin") return !canAccessRole(targetRole, "admin");
+  return false;
+}
 
 function renderStatusSelect(order) {
   const select = document.getElementById("pp-detail-status-select");
@@ -68,9 +102,18 @@ function readFileAsDataUrl(file) {
 }
 
 async function loadUsers() {
-  users = await getUsers(100);
-
   const body = document.getElementById("pp-users-body");
+  try {
+    users = await getUsers(100);
+  } catch (error) {
+    users = [];
+    body.innerHTML = `<tr><td colspan="5" class="pp-muted">Cannot load users with current Firestore rules.</td></tr>`;
+    return;
+  }
+  if (!canManageUsers()) {
+    body.innerHTML = `<tr><td colspan="5" class="pp-muted">Only Admin and Super Admin can manage users.</td></tr>`;
+    return;
+  }
 
   body.innerHTML = users.length
     ? users
@@ -82,8 +125,11 @@ async function loadUsers() {
 
           <td>
             <select class="form-select form-select-sm" data-role="${u.id}">
-              <option value="user" ${u.role === "user" ? "selected" : ""}>user</option>
-              <option value="admin" ${u.role === "admin" ? "selected" : ""}>admin</option>
+              ${ROLE_OPTIONS.map((role) => {
+                const selected = String(u.role || "customer") === role ? "selected" : "";
+                const disabled = canAssignRole(role) ? "" : "disabled";
+                return `<option value="${role}" ${selected} ${disabled}>${role}</option>`;
+              }).join("")}
             </select>
           </td>
 
@@ -114,6 +160,10 @@ async function loadUsers() {
 
       try {
         btn.disabled = true;
+        const target = users.find((x) => x.id === userId);
+        if (!target) throw new Error("User not found");
+        if (!canAssignRole(target.role || "customer")) throw new Error("You cannot manage this user's role.");
+        if (!canAssignRole(role)) throw new Error("You are not allowed to assign this role.");
 
         await updateUser(userId, { role });
 
@@ -136,6 +186,11 @@ async function loadUsers() {
     const confirmDelete = confirm("Are you sure you want to delete this user?");
     if (!confirmDelete) return;
   
+    const target = users.find((u) => u.id === userId);
+    if (target && !canAssignRole(target.role || "customer")) {
+      showToast("You cannot delete this user.", "danger");
+      return;
+    }
     await deleteUser(userId);
     await loadUsers();
   });
@@ -146,6 +201,7 @@ function resetForm() {
   document.getElementById("pp-name").value = "";
   document.getElementById("pp-category").value = "Parfait";
   document.getElementById("pp-price").value = "";
+  document.getElementById("pp-stock-qty").value = "0";
   document.getElementById("pp-image-file").value = "";
   document.getElementById("pp-description").value = "";
   selectedImageBase64 = "";
@@ -195,9 +251,10 @@ function renderProductsTable() {
         <td>${escapeHtml(p.name)}</td>
         <td>${escapeHtml(p.category)}</td>
         <td>${money(p.price)}</td>
+        <td>${Number(p.stockQty ?? 0)}</td>
         <td class="text-end">
-          <button class="btn btn-sm pp-btn-secondary me-1" data-edit="${escapeHtml(p.id)}">Edit</button>
-          <button class="btn btn-sm btn-outline-danger" data-del="${escapeHtml(p.id)}">Delete</button>
+          <button class="btn btn-sm pp-btn-secondary me-1" data-edit="${escapeHtml(p.id)}" ${canManageProducts() ? "" : "disabled"}>Edit</button>
+          <button class="btn btn-sm btn-outline-danger" data-del="${escapeHtml(p.id)}" ${canManageProducts() ? "" : "disabled"}>Delete</button>
         </td>
       </tr>
     `
@@ -205,7 +262,7 @@ function renderProductsTable() {
     .join("");
 
   if (!pageItems.length) {
-    body.innerHTML = `<tr><td colspan="4" class="pp-muted">No products found for this category.</td></tr>`;
+    body.innerHTML = `<tr><td colspan="5" class="pp-muted">No products found for this category.</td></tr>`;
   }
 
   renderProductPagination(totalPages);
@@ -219,6 +276,7 @@ function renderProductsTable() {
       document.getElementById("pp-name").value = p.name || "";
       document.getElementById("pp-category").value = p.category || "Parfait";
       document.getElementById("pp-price").value = p.price ?? "";
+      document.getElementById("pp-stock-qty").value = Number(p.stockQty ?? 0);
       document.getElementById("pp-image-file").value = "";
       document.getElementById("pp-description").value = p.description || "";
       selectedImageBase64 = p.image || "";
@@ -291,8 +349,14 @@ async function loadProducts() {
 }
 
 async function loadOrders() {
-  orders = await listOrders(100);
   const body = document.getElementById("pp-orders-body");
+  try {
+    orders = await listOrders(100);
+  } catch (error) {
+    orders = [];
+    body.innerHTML = `<tr><td colspan="6" class="pp-muted">Cannot load orders with current Firestore rules.</td></tr>`;
+    return;
+  }
   body.innerHTML = orders
     .map(
       (o) => `
@@ -319,6 +383,119 @@ async function loadOrders() {
   });
 
   if (orders.length) renderOrderDetails(orders[0]);
+}
+
+function renderInventory() {
+  const body = document.getElementById("pp-inventory-body");
+  const note = document.getElementById("pp-inventory-role-note");
+  if (note) {
+    note.textContent = hasRole("admin")
+      ? "Admin/Super Admin can adjust directly."
+      : "Staff must submit adjustment requests for approval.";
+  }
+  body.innerHTML = products
+    .map((p) => `
+      <tr>
+        <td>${escapeHtml(p.name || "-")}</td>
+        <td>${escapeHtml(p.category || "-")}</td>
+        <td><span class="fw-semibold">${Number(p.stockQty ?? 0)}</span></td>
+        <td><input class="form-control form-control-sm" type="number" step="1" value="0" id="inv-qty-${escapeHtml(p.id)}"></td>
+        <td><input class="form-control form-control-sm" type="text" placeholder="Reason" id="inv-reason-${escapeHtml(p.id)}"></td>
+        <td class="text-end">
+          <button class="btn btn-sm pp-btn-secondary" data-inv-submit="${escapeHtml(p.id)}">${hasRole("admin") ? "Apply" : "Request"}</button>
+        </td>
+      </tr>
+    `)
+    .join("");
+
+  body.querySelectorAll("[data-inv-submit]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const productId = btn.getAttribute("data-inv-submit");
+      const qty = Number(document.getElementById(`inv-qty-${productId}`)?.value || 0);
+      const reason = String(document.getElementById(`inv-reason-${productId}`)?.value || "").trim();
+      if (!qty) {
+        showToast("Enter a non-zero quantity.", "warning");
+        return;
+      }
+      try {
+        if (hasRole("admin")) {
+          await adjustInventoryDirect(productId, qty, reason);
+          showToast("Inventory updated.", "success");
+        } else if (hasRole("staff")) {
+          await submitInventoryAdjustmentRequest({ productId, adjustmentQty: qty, reason });
+          showToast("Inventory request submitted.", "success");
+        } else {
+          showToast("No permission to adjust inventory.", "danger");
+        }
+        await loadProducts();
+        await loadInventoryRequests();
+      } catch (error) {
+        showToast(error?.message || "Inventory action failed.", "danger");
+      }
+    });
+  });
+}
+
+async function loadInventoryRequests() {
+  const body = document.getElementById("pp-inventory-requests-body");
+  try {
+    requests = await listInventoryAdjustmentRequests(100);
+  } catch (error) {
+    requests = [];
+    body.innerHTML = `<tr><td colspan="7" class="pp-muted">Cannot load inventory requests with current Firestore rules.</td></tr>`;
+    return;
+  }
+  body.innerHTML = requests.length
+    ? requests.map((r) => {
+        const pending = String(r.status || "") === "pending";
+        const reviewButtons = hasRole("admin") && pending
+          ? `
+            <button class="btn btn-sm btn-outline-success me-1" data-req-approve="${escapeHtml(r.id)}">Approve</button>
+            <button class="btn btn-sm btn-outline-danger" data-req-reject="${escapeHtml(r.id)}">Reject</button>
+          `
+          : `<span class="pp-muted small">—</span>`;
+        return `
+          <tr>
+            <td>${escapeHtml(r.productName || r.productId || "-")}</td>
+            <td>${Number(r.adjustmentQty || 0)}</td>
+            <td>${escapeHtml(r.reason || "-")}</td>
+            <td>${escapeHtml(r.requestedByEmail || "-")}</td>
+            <td>${escapeHtml(r.status || "pending")}</td>
+            <td>${escapeHtml(r.reviewNote || "-")}</td>
+            <td class="text-end">${reviewButtons}</td>
+          </tr>
+        `;
+      }).join("")
+    : `<tr><td colspan="7" class="pp-muted">No inventory requests yet.</td></tr>`;
+
+  body.querySelectorAll("[data-req-approve]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-req-approve");
+      try {
+        await reviewInventoryAdjustmentRequest(id, "approved");
+        showToast("Request approved.", "success");
+        await loadProducts();
+        renderInventory();
+        await loadInventoryRequests();
+      } catch (error) {
+        showToast(error?.message || "Unable to approve request.", "danger");
+      }
+    });
+  });
+
+  body.querySelectorAll("[data-req-reject]").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const id = btn.getAttribute("data-req-reject");
+      const note = prompt("Reason for rejection (optional):") || "";
+      try {
+        await reviewInventoryAdjustmentRequest(id, "rejected", note);
+        showToast("Request rejected.", "success");
+        await loadInventoryRequests();
+      } catch (error) {
+        showToast(error?.message || "Unable to reject request.", "danger");
+      }
+    });
+  });
 }
 
 function formatDate(value) {
@@ -417,23 +594,22 @@ function renderOverviewStats() {
   document.getElementById("pp-stat-products").textContent = products.length;
 }
 async function boot() {
-  console.log("loading navbar/footer...");
-  console.log("BOOT START");
-
-  console.time("auth-ready");
-await requireAuthOrRedirect(window.location.pathname);
-console.timeEnd("auth-ready");
-
-
   if (!(await requireAuthOrRedirect(window.location.pathname))) return;
   const denied = document.getElementById("pp-admin-denied");
   const content = document.getElementById("pp-admin-content");
   const user = currentUser();
-  if (!user || !(await isAdminUser())) {
+  currentRole = await getCurrentUserRole();
+  if (!user || !hasRole("staff")) {
     denied.classList.remove("d-none");
+    denied.textContent = "Staff, Admin, or Super Admin access required.";
     return;
   }
   content.classList.remove("d-none");
+
+  const productsTabBtn = document.getElementById("pp-products-tab-btn");
+  const usersTabBtn = document.getElementById("pp-users-tab-btn");
+  if (productsTabBtn && !canManageProducts()) productsTabBtn.classList.add("d-none");
+  if (usersTabBtn && !canManageUsers()) usersTabBtn.classList.add("d-none");
 
   const form = document.getElementById("pp-product-form");
   const imageFileInput = document.getElementById("pp-image-file");
@@ -449,6 +625,10 @@ console.timeEnd("auth-ready");
   });
 
   document.getElementById("pp-restore-defaults")?.addEventListener("click", async () => {
+    if (!canManageProducts()) {
+      showToast("Only Admin/Super Admin can restore defaults.", "danger");
+      return;
+    }
     if (!confirm("This will reset all products to default items. Continue?")) return;
   
     try {
@@ -462,6 +642,10 @@ console.timeEnd("auth-ready");
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    if (!canManageProducts()) {
+      showToast("Only Admin/Super Admin can edit products.", "danger");
+      return;
+    }
     if (!selectedImageBase64) {
       showToast("Please upload a product image.", "danger");
       return;
@@ -471,6 +655,7 @@ console.timeEnd("auth-ready");
       name: document.getElementById("pp-name").value.trim(),
       category: document.getElementById("pp-category").value.trim(),
       price: Number(document.getElementById("pp-price").value || 0),
+      stockQty: Number(document.getElementById("pp-stock-qty")?.value || 0),
       image: selectedImageBase64,
       description: document.getElementById("pp-description").value.trim(),
     };
@@ -499,9 +684,10 @@ console.timeEnd("auth-ready");
   await Promise.all([
     loadProducts(),
     loadOrders(),
-    loadUsers()
+    loadUsers(),
+    loadInventoryRequests()
   ]);
-  
+  renderInventory();
   renderOverviewStats();
   renderOverviewOrders();
 }
